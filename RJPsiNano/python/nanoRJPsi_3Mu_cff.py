@@ -13,7 +13,9 @@ from PhysicsTools.RJPsiNano.trgbits_cff import *
 from PhysicsTools.RJPsiNano.genparticlesBPark_cff import *
 from PhysicsTools.RJPsiNano.particlelevelBPark_cff import *
 from PhysicsTools.RJPsiNano.decayFlags_cff import *
+from PhysicsTools.RJPsiNano.bcgeninfo_cff import *
 from PhysicsTools.RJPsiNano.jpsiMotherFlags_cff import *
+from PhysicsTools.RJPsiNano.HighMassLowMassbkg_cff import *
 #G: from PhysicsTools.RJPsiNano.triggerObjectsBPark_cff import *
 from PhysicsTools.RJPsiNano.muonsBPark_cff import * 
 
@@ -39,7 +41,7 @@ nanoSequence = cms.Sequence(nanoMetadata + globalTables)# +
                             #triggerObjectBParkTables + l1bits)
 
 nanoSequenceMC = cms.Sequence(particleLevelBParkSequence + genParticleBParkSequence + 
-                              genParticleBParkTables + decayFlagsTables + jpsiMotherFlagsTables+ # + lheInfoTable) 
+                              genParticleBParkTables + decayFlagsTables + jpsiMotherFlagsTables + BcGenInfoTables + #HighMassLowMassFlagsTables +# + lheInfoTable) 
                               globalTablesMC) # + genWeightsTable + genParticleBParkTables + lheInfoTable) 
 
 
@@ -61,7 +63,7 @@ def nanoAOD_customizeTriggerBitsBPark(process): #needed??
     return process
 
 def nanoAOD_customizeBTo3Mu(process):
-    process.nanoBTo3MuSequence = cms.Sequence( BTo3MuSequence + BTo3MuTable )
+    process.nanoBTo3MuSequence = cms.Sequence( BTo3MuSequence + BTo3MuTable +HighMassLowMassFlagsTables )
     return process
 
 def nanoAOD_customizeBTo2MuK(process):
