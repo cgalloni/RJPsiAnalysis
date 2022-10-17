@@ -169,10 +169,13 @@ void BTo3MuBuilder::produce(edm::StreamID, edm::Event &evt, edm::EventSetup cons
     size_t isDimuon_jpsiTrk_NonResonantTrg = abs(ll_ptr->userInt("muonpair_fromjpsitrk_NonResonant"));
     //size_t isDimuon_jpsiTrkTrg = abs(ll_ptr->userInt("isJpsiTrkTrg"));
     //size_t isDimuon_dimuon0Trg = abs(ll_ptr->userInt("isDimuon0Trg"));
+
+    /* Trig:
     if(!isDimuon_dimuon0Trg && !isDimuon_jpsiTrk_PsiPrimeTrg && !isDimuon_jpsiTrkTrg && !isDimuon_jpsiTrk_NonResonantTrg) {
       if(debug) std::cout<<"Not dimuon0 trigger couple"<<std::endl;
       continue;
     }
+       */
     
     //Loop  on displaced muons    
     if(debug) std::cout <<"Number of muons"<<std::endl;
@@ -208,10 +211,12 @@ void BTo3MuBuilder::produce(edm::StreamID, edm::Event &evt, edm::EventSetup cons
       bool isUnpairedMuon_jpsiTrk_NonResonant = (isJpsiTrk_NonResonantTrg && !isMuonFromJpsi_jpsiTrk_NonResonantTrg) && isDimuon_jpsiTrk_NonResonantTrg;
       if(debug) std::cout<<"displaced muon:"<<k_ptr->pt()<<" isDImuon0Trg "<<isDimuon0Trg<<" isMuonFromJpsi_dimuon0Trg "<<isMuonFromJpsi_dimuon0Trg<<" isUnpairedMuon "<<isUnpairedMuon_dimuon0<<std::endl;
       //      if(!(isDimuon_jpsiTrkTrg || isUnpairedMuon)) continue;
+      /* Trig:
       if(!(isUnpairedMuon_dimuon0 && isDimuon_dimuon0Trg) && 
          !(isUnpairedMuon_jpsiTrk && isDimuon_jpsiTrkTrg) && 
          !(isUnpairedMuon_jpsiTrk_PsiPrime && isDimuon_jpsiTrk_PsiPrimeTrg) && 
          !(isUnpairedMuon_jpsiTrk_NonResonant && isDimuon_jpsiTrk_NonResonantTrg)) continue;
+       */
       
       math::PtEtaPhiMLorentzVector k_p4(
                 k_ptr->pt(), 
