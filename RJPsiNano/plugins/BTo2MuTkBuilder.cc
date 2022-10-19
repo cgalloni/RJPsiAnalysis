@@ -156,10 +156,11 @@ void BTo2MuTkBuilder::produce(edm::StreamID, edm::Event &evt, edm::EventSetup co
 
     size_t isDimuon_dimuon0Trg = abs(ll_ptr->userInt("muonpair_fromdimuon0"));
     size_t isDimuon_jpsiTrkTrg = abs(ll_ptr->userInt("muonpair_fromjpsitrk"));
+    size_t isDimuon_doubleMuTrg = abs(ll_ptr->userInt("muonpair_fromdoubleMu"));
     //size_t isDimuon_jpsiTrkTrg = abs(ll_ptr->userInt("isJpsiTrkTrg"));
     //size_t isDimuon_dimuon0Trg = abs(ll_ptr->userInt("isDimuon0Trg"));
     if(debug) std::cout<<"isDimuon_jpsiTrkTrg  "<<isDimuon_jpsiTrkTrg<<std::endl;
-    if(!(isDimuon_jpsiTrkTrg)) continue;
+    if(!(isDimuon_jpsiTrkTrg && !isDimuon_doubleMuTrg)) continue;
 
     //Loop  on displaced muons    
     if(debug) std::cout<<"paerticles size "<<particles->size()<<std::endl;
@@ -172,6 +173,7 @@ void BTo2MuTkBuilder::produce(edm::StreamID, edm::Event &evt, edm::EventSetup co
       double k_pvjpsi_dz = particles_ttracks->at(k_idx).track().dz(pv_jpsi.position());
       double k_pvjpsi_dxyErr = particles_ttracks->at(k_idx).track().dxyError(pv_jpsi.position(),pv_jpsi.covariance());
       double k_pvjpsi_dzErr = particles_ttracks->at(k_idx).track().dzError();
+
 
       bool isPartTrg = k_ptr->userInt("isTriggering");
       if(debug) std::cout<<"isTriggering "<<isPartTrg<<std::endl;

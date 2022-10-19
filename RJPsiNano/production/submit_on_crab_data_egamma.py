@@ -14,7 +14,6 @@ config.General.workArea = 'RJPsiNANO_%s' % production_tag
 
 config.section_('Data')
 config.Data.publication = False
-#config.Data.outLFNDirBase = '/store/user/friti/%s' % ('crab_job_' + production_tag)
 config.Data.outLFNDirBase = '/store/user/garamire/%s' % ('crab_job_' + production_tag)
 config.Data.inputDBS = 'global'
 
@@ -28,7 +27,6 @@ config.Data.allowNonValidInputDataset = True
 
 config.section_('User')
 config.section_('Site')
-#config.Site.storageSite = 'T2_CH_CSCS'
 config.Site.storageSite = 'T2_IT_Pisa'
 #config.Site.storageSite = 'T3_CH_PSI'
 
@@ -49,7 +47,7 @@ if __name__ == '__main__':
 
 
   parser = ArgumentParser()
-  parser.add_argument('-y', '--yaml', default = 'samples_data_rjpsi.yml', help = 'File with dataset descriptions')
+  parser.add_argument('-y', '--yaml', default = 'samples_data_egamma.yml', help = 'File with dataset descriptions')
   parser.add_argument('-f', '--filter', default='*', help = 'filter samples, POSIX regular expressions allowed')
   args = parser.parse_args()
 
@@ -91,7 +89,7 @@ if __name__ == '__main__':
         )
         globaltag = info.get(
             'globaltag',
-            common[common_branch].get('globaltag', None)
+            info['globaltag']
         )
         
         config.JobType.pyCfgParams = [

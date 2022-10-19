@@ -167,9 +167,10 @@ void BTo3MuBuilder::produce(edm::StreamID, edm::Event &evt, edm::EventSetup cons
     size_t isDimuon_jpsiTrkTrg = abs(ll_ptr->userInt("muonpair_fromjpsitrk"));
     size_t isDimuon_jpsiTrk_PsiPrimeTrg = abs(ll_ptr->userInt("muonpair_fromjpsitrk_PsiPrime"));
     size_t isDimuon_jpsiTrk_NonResonantTrg = abs(ll_ptr->userInt("muonpair_fromjpsitrk_NonResonant"));
+    size_t isDimuon_doubleMuTrg = abs(ll_ptr->userInt("muonpair_fromdoubleMu"));
     //size_t isDimuon_jpsiTrkTrg = abs(ll_ptr->userInt("isJpsiTrkTrg"));
     //size_t isDimuon_dimuon0Trg = abs(ll_ptr->userInt("isDimuon0Trg"));
-    if(!isDimuon_dimuon0Trg && !isDimuon_jpsiTrk_PsiPrimeTrg && !isDimuon_jpsiTrkTrg && !isDimuon_jpsiTrk_NonResonantTrg) {
+    if(!isDimuon_dimuon0Trg && !isDimuon_jpsiTrk_PsiPrimeTrg && !isDimuon_jpsiTrkTrg && !isDimuon_jpsiTrk_NonResonantTrg && !isDimuon_doubleMuTrg) {
       if(debug) std::cout<<"Not dimuon0 trigger couple"<<std::endl;
       continue;
     }
@@ -190,6 +191,7 @@ void BTo3MuBuilder::produce(edm::StreamID, edm::Event &evt, edm::EventSetup cons
       double k_pvfirst_dxyErr = k_ptr->bestTrack()->dxyError(pv_first.position(),pv_first.covariance());
       double k_pvfirst_dzErr = k_ptr->bestTrack()->dzError();
   
+      /* hlt: the DoubleMu trigger doesn't have an unpaired muon, we can't require it
       //std::cout << "here1" << std::endl;
       //ha trovato il mu displaced
       bool isDimuon0Trg = k_ptr->userInt("isDimuon0Trg");
@@ -212,6 +214,7 @@ void BTo3MuBuilder::produce(edm::StreamID, edm::Event &evt, edm::EventSetup cons
          !(isUnpairedMuon_jpsiTrk && isDimuon_jpsiTrkTrg) && 
          !(isUnpairedMuon_jpsiTrk_PsiPrime && isDimuon_jpsiTrk_PsiPrimeTrg) && 
          !(isUnpairedMuon_jpsiTrk_NonResonant && isDimuon_jpsiTrk_NonResonantTrg)) continue;
+       */
       
       math::PtEtaPhiMLorentzVector k_p4(
                 k_ptr->pt(), 
