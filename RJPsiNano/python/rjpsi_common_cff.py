@@ -7,8 +7,8 @@ JpsiMuonPairs = cms.EDProducer(
     src                    = cms.InputTag('muonTrgSelector', 'SelectedMuons'),
     transientTracksSrc     = cms.InputTag('muonTrgSelector', 'SelectedTransientMuons'),
     vertexCollection       = cms.InputTag("offlineSlimmedPrimaryVertices"),
-    muon1Selection         = cms.string('pt > 2.5'),
-    muon2Selection         = cms.string(''),
+    muon1Selection         = cms.string('pt > 4.0 && isMediumMuon'),
+    muon2Selection         = cms.string('pt > 4.0 && isMediumMuon'),
     preVtxSelection        = cms.string(' && '.join([
         'abs(userCand("mu1").bestTrack.dz - userCand("mu2").bestTrack.dz) <= 0.4 ',
         'mass() > 2',

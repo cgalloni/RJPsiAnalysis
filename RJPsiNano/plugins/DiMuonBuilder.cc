@@ -119,16 +119,9 @@ void DiMuonBuilder::produce(edm::StreamID, edm::Event &evt, edm::EventSetup cons
       int jpsitrk_NonResonant_trigger = (isJpsiTrk_NonResonantTrg1 && isMuonFromJpsi_jpsiTrk_NonResonant_1) && (isJpsiTrk_NonResonantTrg2 && isMuonFromJpsi_jpsiTrk_NonResonant_2);
       int doubleMu_trigger = (isDoubleMuTrg1 && isMuonFromJpsi_doubleMu_1) && (isDoubleMuTrg2 && isMuonFromJpsi_doubleMu_2);
 
-      // if(isJpsiTrk_NonResonantTrg1) std::cout << "DimuonBuilder::isJpsiTrk_NonResonantTrg1" << std::endl;
-      // if(isJpsiTrk_NonResonantTrg2) std::cout << "DimuonBuilder::isJpsiTrk_NonResonantTrg2" << std::endl;
-      // if(isMuonFromJpsi_jpsiTrk_NonResonant_1) std::cout << "DimuonBuilder::isMuonFromJpsi_jpsiTrk_NonResonant_1" << std::endl;
-      // if(isMuonFromJpsi_jpsiTrk_NonResonant_2) std::cout << "DimuonBuilder::isMuonFromJpsi_jpsiTrk_NonResonant_2" << std::endl;
-
       if(debug) std::cout<< "mu2 "<<mu2_ptr->pt()<<" isMuonFromJpsi_jpsiTrk_2 "<<isMuonFromJpsi_jpsiTrk_2<<" isJpsiTrkTrg2 "<<isJpsiTrkTrg2<<std::endl;
       
-      /* hlt: Commeting this part to let all the dimuons present pass
       if(!jpsitrk_trigger && !dimuon0_trigger && !jpsitrk_PsiPrime_trigger && !jpsitrk_NonResonant_trigger && !doubleMu_trigger) continue;
-      */
       
       //  std::cout << "++++DimuonBuilder::jpsitrk_NonResonant_trigger" << std::endl;
       pat::CompositeCandidate muon_pair;

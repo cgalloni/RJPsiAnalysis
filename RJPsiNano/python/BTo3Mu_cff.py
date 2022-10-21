@@ -12,7 +12,7 @@ BTo3Mu = cms.EDProducer(
     'BTo3MuBuilder',
     BTo3MuCfg,
     muons = cms.InputTag('muonTrgSelector', 'SelectedMuons'),
-    muonSelection = cms.string(''),
+    muonSelection = cms.string('pt > 4.0 && isMediumMuon '),
     srcGen = cms.InputTag("prunedGenParticles"),
     dimuons_fitter = cms.InputTag('JpsiMuonPairs','dimuonFitter')
 )
