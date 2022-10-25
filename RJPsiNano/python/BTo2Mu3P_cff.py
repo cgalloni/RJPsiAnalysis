@@ -62,6 +62,14 @@ BTo2Mu3PTableVariables = TableDefaultVariables.clone(
     pi3_iso03     = ufloat('pi3_iso03'),
     pi3_iso04     = ufloat('pi3_iso04'),
 
+    ip3D_pvjpsi_pi1 = ufloat('ip3D_pvjpsi_pi1'),
+    ip3D_pvjpsi_pi1_e = ufloat('ip3D_pvjpsi_pi1_e'),
+
+    ip3D_pvjpsi_pi2 = ufloat('ip3D_pvjpsi_pi2'),
+    ip3D_pvjpsi_pi2_e = ufloat('ip3D_pvjpsi_pi2_e'),
+
+    ip3D_pvjpsi_pi3 = ufloat('ip3D_pvjpsi_pi3'),
+    ip3D_pvjpsi_pi3_e = ufloat('ip3D_pvjpsi_pi3_e'),
 )
 
 BTo2Mu3PTable = TableDefault.clone()

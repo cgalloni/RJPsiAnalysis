@@ -64,7 +64,7 @@ public:
   
   void produce(edm::StreamID, edm::Event&, const edm::EventSetup&) const override;
   int  getPVIdx(const reco::VertexCollection*,const reco::TransientTrack&) const;
-  Measurement1D getIP(KinVtxFitter fitter, reco::TransientTrack transientTrackMu) const;
+  Measurement1D getIP(edm::Ptr<pat::CompositeCandidate> ll_ptr, reco::Vertex pv, reco::TransientTrack transientTrackMu) const;
 
   static void fillDescriptions(edm::ConfigurationDescriptions &descriptions) {}
   
@@ -149,11 +149,14 @@ void BTo2Mu3PiBuilder::produce(edm::StreamID, edm::Event &evt, edm::EventSetup c
     double mu1_pvjpsi_dzErr = mu1_ptr->bestTrack()->dzError();
     double mu2_pvjpsi_dzErr = mu2_ptr->bestTrack()->dzError();
 
+
+
     size_t isDimuon_dimuon0Trg = abs(ll_ptr->userInt("muonpair_fromdimuon0"));
     size_t isDimuon_jpsiTrkTrg = abs(ll_ptr->userInt("muonpair_fromjpsitrk"));
+    size_t isDimuon_doubleMuTrg = abs(ll_ptr->userInt("muonpair_fromjpsitrk"));
     //size_t isDimuon_jpsiTrkTrg = abs(ll_ptr->userInt("isJpsiTrkTrg"));
     //size_t isDimuon_dimuon0Trg = abs(ll_ptr->userInt("isDimuon0Trg"));
-    if(!(isDimuon_jpsiTrkTrg)) continue;
+    if(!isDimuon_jpsiTrkTrg && !isDimuon_doubleMuTrg) continue;
 
     // first loop on pion- this one with trigger matching
     if(debug) std::cout<<"paerticles size "<<particles->size()<<std::endl;
@@ -166,6 +169,8 @@ void BTo2Mu3PiBuilder::produce(edm::StreamID, edm::Event &evt, edm::EventSetup c
       //dR requirement
       if(deltaR(muons_ttracks->at(mu2_idx).track().eta(),muons_ttracks->at(mu2_idx).track().phi(),particles_ttracks->at(pi1_idx).track().eta(),particles_ttracks->at(pi1_idx).track().phi()) < 0.1 ) continue;
       if(deltaR(muons_ttracks->at(mu1_idx).track().eta(),muons_ttracks->at(mu1_idx).track().phi(),particles_ttracks->at(pi1_idx).track().eta(),particles_ttracks->at(pi1_idx).track().phi()) < 0.1 ) continue;
+
+      if(deltaR(ll_ptr->p4().eta(),ll_ptr->p4().phi(),particles_ttracks->at(pi1_idx).track().eta(),particles_ttracks->at(pi1_idx).track().phi()) > 1.0 ) continue;
       
       bool isPartTrg = pi1_ptr->userInt("isTriggering");
       //ha trovato il mu displaced
@@ -193,6 +198,7 @@ void BTo2Mu3PiBuilder::produce(edm::StreamID, edm::Event &evt, edm::EventSetup c
 	if(deltaR(muons_ttracks->at(mu2_idx).track().eta(),muons_ttracks->at(mu2_idx).track().phi(),particles_ttracks->at(pi2_idx).track().eta(),particles_ttracks->at(pi2_idx).track().phi()) < 0.1 ) continue;
 	if(deltaR(muons_ttracks->at(mu1_idx).track().eta(),muons_ttracks->at(mu1_idx).track().phi(),particles_ttracks->at(pi2_idx).track().eta(),particles_ttracks->at(pi2_idx).track().phi()) < 0.1 ) continue;
 
+  if(deltaR(ll_ptr->p4().eta(),ll_ptr->p4().phi(),particles_ttracks->at(pi2_idx).track().eta(),particles_ttracks->at(pi2_idx).track().phi()) > 1.0 ) continue;
 	math::PtEtaPhiMLorentzVector pi2_p4(
 					    pi2_ptr->pt(),
 					    pi2_ptr->eta(),
@@ -212,6 +218,7 @@ void BTo2Mu3PiBuilder::produce(edm::StreamID, edm::Event &evt, edm::EventSetup c
 	    //DR requirements
 	    if(deltaR(muons_ttracks->at(mu2_idx).track().eta(),muons_ttracks->at(mu2_idx).track().phi(),particles_ttracks->at(pi3_idx).track().eta(),particles_ttracks->at(pi3_idx).track().phi()) < 0.1 ) continue;
 	    if(deltaR(muons_ttracks->at(mu1_idx).track().eta(),muons_ttracks->at(mu1_idx).track().phi(),particles_ttracks->at(pi3_idx).track().eta(),particles_ttracks->at(pi3_idx).track().phi()) < 0.1 ) continue;
+      if(deltaR(ll_ptr->p4().eta(),ll_ptr->p4().phi(),particles_ttracks->at(pi3_idx).track().eta(),particles_ttracks->at(pi3_idx).track().phi()) > 1.0 ) continue;
 
 	    if(debug) std::cout<<"before dz "<<std::endl;
 
@@ -318,10 +325,20 @@ void BTo2Mu3PiBuilder::produce(edm::StreamID, edm::Event &evt, edm::EventSetup c
 						  fitter.fitted_vtx().z()
 						   )  
 			    );
-	    /*Measurement1D ip3D = getIP(fitter, particles_ttracks->at(k_idx));
-	    cand.addUserFloat("ip3D", ip3D.value());
-	    cand.addUserFloat("ip3D_e", ip3D.error());
-	    */
+
+      Measurement1D ip3D_pvjpsi_pi1 = getIP(ll_ptr, pv_jpsi, particles_ttracks->at(pi1_idx));
+      Measurement1D ip3D_pvjpsi_pi2 = getIP(ll_ptr, pv_jpsi, particles_ttracks->at(pi2_idx));
+      Measurement1D ip3D_pvjpsi_pi3 = getIP(ll_ptr, pv_jpsi, particles_ttracks->at(pi3_idx));
+
+      cand.addUserFloat("ip3D_pvjpsi_pi1", ip3D_pvjpsi_pi1.value());
+      cand.addUserFloat("ip3D_pvjpsi_pi1_e", ip3D_pvjpsi_pi1.error());
+
+      cand.addUserFloat("ip3D_pvjpsi_pi2", ip3D_pvjpsi_pi2.value());
+      cand.addUserFloat("ip3D_pvjpsi_pi2_e", ip3D_pvjpsi_pi2.error());
+
+      cand.addUserFloat("ip3D_pvjpsi_pi3", ip3D_pvjpsi_pi3.value());
+      cand.addUserFloat("ip3D_pvjpsi_pi3_e", ip3D_pvjpsi_pi3.error());
+
 	    // pv shortest dz from jpsi + mu
 	    const reco::TransientTrack& threemuonTT = fitter.fitted_candidate_ttrk();
 	    
@@ -557,32 +574,24 @@ void BTo2Mu3PiBuilder::produce(edm::StreamID, edm::Event &evt, edm::EventSetup c
   evt.put(std::move(ret_val));
 }//produce  
 
-Measurement1D BTo2Mu3PiBuilder::getIP(KinVtxFitter fitter,reco::TransientTrack transientTrackMu) const
+Measurement1D BTo2Mu3PiBuilder::getIP(edm::Ptr<pat::CompositeCandidate> ll_ptr, reco::Vertex pv, reco::TransientTrack transientTrackMu) const
 {
-  // computing 3d impact parameter
-  GlobalVector jpsiDirection(fitter.fitted_p4().x(), fitter.fitted_p4().y(), fitter.fitted_p4().z());
-  reco::Vertex::Point jpsiVertexPosition(fitter.fitted_vtx().x(),fitter.fitted_vtx().y(),fitter.fitted_vtx().z());
-
-  const double err00 = fitter.fitted_candidate().kinematicParametersError().matrix()(0,0);
-  const double err11 = fitter.fitted_candidate().kinematicParametersError().matrix()(1,1);
-  const double err22 = fitter.fitted_candidate().kinematicParametersError().matrix()(2,2);
-  const double err01 = fitter.fitted_candidate().kinematicParametersError().matrix()(0,1);
-  const double err02 = fitter.fitted_candidate().kinematicParametersError().matrix()(0,2);
-  const double err12 = fitter.fitted_candidate().kinematicParametersError().matrix()(1,2);
+  reco::Vertex::Point jpsiVertexPosition(ll_ptr->userFloat("vtx_x"),ll_ptr->userFloat("vtx_y"),ll_ptr->userFloat("vtx_z"));
   reco::Vertex::Error jpsiVertexError;
 
-  jpsiVertexError(0,0) = err00;
-  jpsiVertexError(0,1) = err01;
-  jpsiVertexError(0,2) = err02;
-  jpsiVertexError(1,0) = err01;
-  jpsiVertexError(1,1) = err11;
-  jpsiVertexError(1,2) = err12;
-  jpsiVertexError(2,0) = err02;
-  jpsiVertexError(2,1) = err12;
-  jpsiVertexError(2,2) = err22;
+  jpsiVertexError(0,0) = ll_ptr->userFloat("jpsi_err00");
+  jpsiVertexError(0,1) = ll_ptr->userFloat("jpsi_err01");
+  jpsiVertexError(0,2) = ll_ptr->userFloat("jpsi_err02");
+  jpsiVertexError(1,0) = ll_ptr->userFloat("jpsi_err01");
+  jpsiVertexError(1,1) = ll_ptr->userFloat("jpsi_err11");
+  jpsiVertexError(1,2) = ll_ptr->userFloat("jpsi_err12");
+  jpsiVertexError(2,0) = ll_ptr->userFloat("jpsi_err02");
+  jpsiVertexError(2,1) = ll_ptr->userFloat("jpsi_err12");
+  jpsiVertexError(2,2) = ll_ptr->userFloat("jpsi_err22");
 
-  GlobalVector jpsiGlobalVector(fitter.fitted_p4().x(), fitter.fitted_p4().y(), fitter.fitted_p4().z());
-  const reco::Vertex jpsiVertex(jpsiVertexPosition, jpsiVertexError, fitter.chi2(), fitter.dof(), 2);
+  GlobalVector jpsiGlobalVector(ll_ptr->userFloat("vtx_x") - pv.position().x(), ll_ptr->userFloat("vtx_y") - pv.position().y(), ll_ptr->userFloat("vtx_z") - pv.position().z());
+
+  const reco::Vertex jpsiVertex(jpsiVertexPosition, jpsiVertexError, ll_ptr->userFloat("sv_chi2"), ll_ptr->userFloat("sv_ndof"), 2);
 
   SignedImpactParameter3D signed_ip3D;
   Measurement1D ip3D = signed_ip3D.apply(transientTrackMu,jpsiGlobalVector,jpsiVertex).second;
