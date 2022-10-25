@@ -164,12 +164,16 @@ void BTo2Mu3PiBuilder::produce(edm::StreamID, edm::Event &evt, edm::EventSetup c
       edm::Ptr<pat::CompositeCandidate> pi1_ptr(particles, pi1_idx);
       if( !particle_selection_(*pi1_ptr) ) continue;
       //dz requirement
-      if ( fabs(particles_ttracks->at(pi1_idx).track().dz() - mu1_ptr->bestTrack()->dz()) > 0.4 || fabs(particles_ttracks->at(pi1_idx).track().dz() - mu2_ptr->bestTrack()->dz()) > 0.4) continue;
-      
-      //dR requirement
-      if(deltaR(muons_ttracks->at(mu2_idx).track().eta(),muons_ttracks->at(mu2_idx).track().phi(),particles_ttracks->at(pi1_idx).track().eta(),particles_ttracks->at(pi1_idx).track().phi()) < 0.1 ) continue;
-      if(deltaR(muons_ttracks->at(mu1_idx).track().eta(),muons_ttracks->at(mu1_idx).track().phi(),particles_ttracks->at(pi1_idx).track().eta(),particles_ttracks->at(pi1_idx).track().phi()) < 0.1 ) continue;
+      //if ( fabs(particles_ttracks->at(pi1_idx).track().dz() - mu1_ptr->bestTrack()->dz()) > 0.4 || fabs(particles_ttracks->at(pi1_idx).track().dz() - mu2_ptr->bestTrack()->dz()) > 0.4) continue;
+      //std::cout<<"pion1 pt"<<particles_ttracks->at(pi1_idx).track().pt()<<std::endl;
+      //std::cout<<"pion1 dz vertex"<<particles_ttracks->at(pi1_idx).track().dz(pv_jpsi.position())<<std::endl;
+      if (fabs(particles_ttracks->at(pi1_idx).track().dz(pv_jpsi.position())) > 0.12) continue;
+       
 
+      //dR requirement
+      //if(deltaR(muons_ttracks->at(mu2_idx).track().eta(),muons_ttracks->at(mu2_idx).track().phi(),particles_ttracks->at(pi1_idx).track().eta(),particles_ttracks->at(pi1_idx).track().phi()) < 0.1 ) continue;
+      //if(deltaR(muons_ttracks->at(mu1_idx).track().eta(),muons_ttracks->at(mu1_idx).track().phi(),particles_ttracks->at(pi1_idx).track().eta(),particles_ttracks->at(pi1_idx).track().phi()) < 0.1 ) continue;
+      
       if(deltaR(ll_ptr->p4().eta(),ll_ptr->p4().phi(),particles_ttracks->at(pi1_idx).track().eta(),particles_ttracks->at(pi1_idx).track().phi()) > 1.0 ) continue;
       
       bool isPartTrg = pi1_ptr->userInt("isTriggering");
@@ -193,12 +197,13 @@ void BTo2Mu3PiBuilder::produce(edm::StreamID, edm::Event &evt, edm::EventSetup c
 	if( !particle_selection_(*pi2_ptr) ) continue;
 	if(pi2_idx == pi1_idx) continue;
 	// dz between track and leptons
-	if ( fabs(particles_ttracks->at(pi2_idx).track().dz() - mu1_ptr->bestTrack()->dz()) > 0.4 ||  fabs(particles_ttracks->at(pi2_idx).track().dz() - mu2_ptr->bestTrack()->dz()) > 0.4) continue;
+	//	if ( fabs(particles_ttracks->at(pi2_idx).track().dz() - mu1_ptr->bestTrack()->dz()) > 0.4 ||  fabs(particles_ttracks->at(pi2_idx).track().dz() - mu2_ptr->bestTrack()->dz()) > 0.4) continue;
+	if (fabs(particles_ttracks->at(pi2_idx).track().dz(pv_jpsi.position())) > 0.12) continue;	
 	//DR between tracks and leptons
-	if(deltaR(muons_ttracks->at(mu2_idx).track().eta(),muons_ttracks->at(mu2_idx).track().phi(),particles_ttracks->at(pi2_idx).track().eta(),particles_ttracks->at(pi2_idx).track().phi()) < 0.1 ) continue;
-	if(deltaR(muons_ttracks->at(mu1_idx).track().eta(),muons_ttracks->at(mu1_idx).track().phi(),particles_ttracks->at(pi2_idx).track().eta(),particles_ttracks->at(pi2_idx).track().phi()) < 0.1 ) continue;
+	//if(deltaR(muons_ttracks->at(mu2_idx).track().eta(),muons_ttracks->at(mu2_idx).track().phi(),particles_ttracks->at(pi2_idx).track().eta(),particles_ttracks->at(pi2_idx).track().phi()) < 0.1 ) continue;
+	//if(deltaR(muons_ttracks->at(mu1_idx).track().eta(),muons_ttracks->at(mu1_idx).track().phi(),particles_ttracks->at(pi2_idx).track().eta(),particles_ttracks->at(pi2_idx).track().phi()) < 0.1 ) continue;
 
-  if(deltaR(ll_ptr->p4().eta(),ll_ptr->p4().phi(),particles_ttracks->at(pi2_idx).track().eta(),particles_ttracks->at(pi2_idx).track().phi()) > 1.0 ) continue;
+	if(deltaR(ll_ptr->p4().eta(),ll_ptr->p4().phi(),particles_ttracks->at(pi2_idx).track().eta(),particles_ttracks->at(pi2_idx).track().phi()) > 1.0 ) continue;
 	math::PtEtaPhiMLorentzVector pi2_p4(
 					    pi2_ptr->pt(),
 					    pi2_ptr->eta(),
@@ -214,11 +219,12 @@ void BTo2Mu3PiBuilder::produce(edm::StreamID, edm::Event &evt, edm::EventSetup c
 	    if( !particle_selection_(*pi3_ptr) ) continue;
 	    if(pi3_idx == pi1_idx or pi3_idx == pi2_idx) continue;
 	    //dz requirement
-	    if ( fabs(particles_ttracks->at(pi3_idx).track().dz() - mu1_ptr->bestTrack()->dz()) > 0.4 ||  fabs(particles_ttracks->at(pi3_idx).track().dz() - mu2_ptr->bestTrack()->dz()) > 0.4) continue;
+	    //  if ( fabs(particles_ttracks->at(pi3_idx).track().dz() - mu1_ptr->bestTrack()->dz()) > 0.4 ||  fabs(particles_ttracks->at(pi3_idx).track().dz() - mu2_ptr->bestTrack()->dz()) > 0.4) continue;
+	    if (fabs(particles_ttracks->at(pi3_idx).track().dz(pv_jpsi.position())) > 0.12) continue;
 	    //DR requirements
-	    if(deltaR(muons_ttracks->at(mu2_idx).track().eta(),muons_ttracks->at(mu2_idx).track().phi(),particles_ttracks->at(pi3_idx).track().eta(),particles_ttracks->at(pi3_idx).track().phi()) < 0.1 ) continue;
-	    if(deltaR(muons_ttracks->at(mu1_idx).track().eta(),muons_ttracks->at(mu1_idx).track().phi(),particles_ttracks->at(pi3_idx).track().eta(),particles_ttracks->at(pi3_idx).track().phi()) < 0.1 ) continue;
-      if(deltaR(ll_ptr->p4().eta(),ll_ptr->p4().phi(),particles_ttracks->at(pi3_idx).track().eta(),particles_ttracks->at(pi3_idx).track().phi()) > 1.0 ) continue;
+	    //if(deltaR(muons_ttracks->at(mu2_idx).track().eta(),muons_ttracks->at(mu2_idx).track().phi(),particles_ttracks->at(pi3_idx).track().eta(),particles_ttracks->at(pi3_idx).track().phi()) < 0.1 ) continue;
+	    //if(deltaR(muons_ttracks->at(mu1_idx).track().eta(),muons_ttracks->at(mu1_idx).track().phi(),particles_ttracks->at(pi3_idx).track().eta(),particles_ttracks->at(pi3_idx).track().phi()) < 0.1 ) continue;
+	    if(deltaR(ll_ptr->p4().eta(),ll_ptr->p4().phi(),particles_ttracks->at(pi3_idx).track().eta(),particles_ttracks->at(pi3_idx).track().phi()) > 1.0 ) continue;
 
 	    if(debug) std::cout<<"before dz "<<std::endl;
 

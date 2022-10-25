@@ -9,13 +9,13 @@ BTo2Mu3PCfg = BuilderDefaultCfg.clone()
 BTo2Mu3PCfg.muonTransientTracks = JpsiMuonPairs.transientTracksSrc
 BTo2Mu3PCfg.postVtxSelection = cms.string(' && '.join([
         BuilderDefaultCfg.postVtxSelection.value(),
-        'mass > 4.5',
+        'mass > 4',
         ])
 )
 
 BTo2Mu3PCfg.kaonSelection = cms.string(' && '.join([
     #    BuilderDefaultCfg.kaonSelection.value(),
-    'pt > 1',
+    'pt > 0.5',
     'eta < 2.5',
         ])
 )
