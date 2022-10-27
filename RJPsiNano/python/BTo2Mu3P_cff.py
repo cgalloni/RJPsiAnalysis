@@ -26,7 +26,7 @@ BTo2Mu3P = cms.EDProducer(
     srcGen = cms.InputTag("prunedGenParticles"),
     particles = cms.InputTag('tracksBPark', 'SelectedTracks'),
     particlesTransientTracks  = cms.InputTag('tracksBPark', 'SelectedTransientTracks'),
-    particleSelection         = cms.string(''),
+    particleSelection         = cms.string(' && '.join([ 'pt>0.5','eta<2.5'])),
 )
 
 BTo2Mu3PTableVariables = TableDefaultVariables.clone(
