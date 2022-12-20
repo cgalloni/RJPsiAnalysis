@@ -129,6 +129,9 @@ void MuonTriggerSelector::produce(edm::Event& iEvent, const edm::EventSetup& iSe
   unsigned int index_doubleMu2 = names.triggerIndex("HLT_DoubleMu4_3_Jpsi_v2");
 
   
+  unsigned int index_dimuon0_jpsi_1 = names.triggerIndex("HLT_Dimuon0_Jpsi_NoVertexing_v7");
+  unsigned int index_dimuon0_jpsi_2 = names.triggerIndex("HLT_Dimuon0_Jpsi_NoVertexing_v8");
+  unsigned int index_dimuon43_jpsi_displaced = names.triggerIndex("HLT_DoubleMu4_3_Jpsi_Displaced_v7");
   
   bool pass_dimuon01_path= false;
   bool pass_dimuon02_path= false;
@@ -140,6 +143,10 @@ void MuonTriggerSelector::produce(edm::Event& iEvent, const edm::EventSetup& iSe
   bool pass_jpsiTrk6_path = false;
   bool pass_doubleMu1_path = false;
   bool pass_doubleMu2_path = false;
+  bool pass_dimuon0_jpsi_1_path = false;
+  bool pass_dimuon0_jpsi_2_path = false;
+  bool pass_dimuon43_jpsi_displaced_path = false;
+
   if(index_dimuon01 != triggerBits->size()) 
     pass_dimuon01_path = triggerBits->accept(index_dimuon01);
   if(index_dimuon02 != triggerBits->size()) 
@@ -156,11 +163,22 @@ void MuonTriggerSelector::produce(edm::Event& iEvent, const edm::EventSetup& iSe
     pass_jpsiTrk5_path = triggerBits->accept(index_jpsiTrk5);
   if(index_jpsiTrk6 != triggerBits->size()) 
     pass_jpsiTrk6_path = triggerBits->accept(index_jpsiTrk6);
+
   if(index_doubleMu1 != triggerBits->size()) 
     pass_doubleMu1_path = triggerBits->accept(index_doubleMu1);
   if(index_doubleMu2 != triggerBits->size()) 
     pass_doubleMu2_path = triggerBits->accept(index_doubleMu2);
-  //  if(debug) std::cout << "pass_dimuuon0 " << pass_dimuon0_path<<" pass_trk "<<pass_jpsiTrk_path<<std::endl;
+
+
+  if(index_dimuon0_jpsi_1 != triggerBits->size())
+    pass_dimuon0_jpsi_1_path = triggerBits->accept(index_dimuon0_jpsi_1);
+  if(index_dimuon0_jpsi_2 != triggerBits->size())
+    pass_dimuon0_jpsi_2_path = triggerBits->accept(index_dimuon0_jpsi_2);      
+  if(index_dimuon43_jpsi_displaced != triggerBits->size())
+    pass_dimuon43_jpsi_displaced_path = triggerBits->accept(index_dimuon43_jpsi_displaced);      
+ 
+ //  if(debug) std::cout << "pass_dimuuon0 " << pass_dimuon0_path<<" pass_trk "<<pass_jpsiTrk_path<<std::endl;
+
   //if(pass_dimuon0_path) std::cout << "pass_dimuuon0" << std::endl;
   std::vector<bool> jpsiFromMuon_fromDimuon0_flags;
   std::vector<bool> jpsiFromMuon_fromJpsiTrk_flags;
@@ -171,9 +189,14 @@ void MuonTriggerSelector::produce(edm::Event& iEvent, const edm::EventSetup& iSe
   std::vector<bool> jpsiTrkFlags;
   std::vector<bool> jpsiTrk_PsiPrimeFlags;
   std::vector<bool> jpsiTrk_NonResonantFlags;
+
   std::vector<bool> doubleMuFlags;
 
-  if(pass_dimuon01_path || pass_dimuon02_path || pass_jpsiTrk1_path || pass_jpsiTrk2_path || pass_jpsiTrk3_path || pass_jpsiTrk4_path || pass_jpsiTrk5_path || pass_jpsiTrk6_path || pass_doubleMu1_path || pass_doubleMu2_path) {  
+  std::vector<bool> dimuon0_jpsi_flags;
+  std::vector<bool> dimuon43_jpsi_displaced_flags;
+
+  if(pass_dimuon01_path || pass_dimuon02_path || pass_jpsiTrk1_path || pass_jpsiTrk2_path || pass_jpsiTrk3_path || pass_jpsiTrk4_path || pass_jpsiTrk5_path || pass_jpsiTrk6_path || pass_doubleMu1_path || pass_doubleMu2_path || pass_dimuon0_jpsi_1_path || pass_dimuon0_jpsi_2_path || pass_dimuon43_jpsi_displaced_path ) {  
+
     //if(pass_dimuon01_path || pass_jpsiTrk1_path || pass_jpsiTrk2_path || pass_jpsiTrk3_path || pass_jpsiTrk4_path || pass_jpsiTrk5_path || pass_jpsiTrk6_path) {  
     for (pat::TriggerObjectStandAlone obj : *triggerObjects) 
     { // note: not "const &" since we want to call unpackPathNames
@@ -189,23 +212,41 @@ void MuonTriggerSelector::produce(edm::Event& iEvent, const edm::EventSetup& iSe
       bool jpsitrk_seed = false;
       bool jpsitrk_PsiPrime_seed = false;
       bool jpsitrk_NonResonant_seed = false;
+
       bool doubleMu_seed = false;
+
+      bool dimuon0_jpsi_seed = false;
+      bool dimuon43_jpsi_displaced_seed = false;
 
       //if(pass_jpsiTrk5_path || pass_jpsiTrk6_path) 
       //  if(debugTrg) std::cout << "pass_nonREsonant path" << std::endl;
 
+
+
+      //Matching for lept trigger: HLT_Dimuon0_Jpsi3p5_Muon2_v4
 
       if(obj.hasFilterLabel("hltVertexmumuFilterJpsiMuon3p5") )
         muonFromJpsi_fromDimuon0Path = true;
       if(obj.hasFilterLabel("hltTripleMuL3PreFiltered222")){
         dimuon0_seed = true;
       }
-
+      // Matching for had trigger: HLT_DoubleMu4_JpsiTrk_Displaced_v15
       if(obj.hasFilterLabel("hltDisplacedmumuFilterDoubleMu4Jpsi") )
         muonFromJpsi_fromJpsiTrkPath = true;
       if(obj.hasFilterLabel("hltJpsiTkVertexFilter")){
-        jpsitrk_seed = true;
+        jpsitrk_seed = true;// it shouldn't be used since this matches a track
       }
+
+      //Matching for the possible reference trigger: HLT_Dimuon0_Jpsi_NoVertexing_v
+      if(obj.hasFilterLabel("hltDimuon0JpsiL3Filtered")){
+	dimuon0_jpsi_seed =true;
+      }
+      //Matching for the possible reference trigger: HLT_DoubleMu4_3_Jpsi_Displaced_v
+      if(obj.hasFilterLabel("hltDisplacedmumuFilterDoubleMu43Jpsi")){
+	dimuon43_jpsi_displaced_seed  =true;
+      }
+
+
 
       if(obj.hasFilterLabel("hltDisplacedmumuFilterDoubleMu4PsiPrime") )
       {
@@ -241,6 +282,11 @@ void MuonTriggerSelector::produce(edm::Event& iEvent, const edm::EventSetup& iSe
       jpsiFromMuon_fromJpsiTrk_PsiPrime_flags.push_back(muonFromJpsi_fromJpsiTrk_PsiPrimePath); //the muon is from the jpsi
       jpsiFromMuon_fromJpsiTrk_NonResonant_flags.push_back(muonFromJpsi_fromJpsiTrk_NonResonantPath); //the muon is from the jpsi
       jpsiFromMuon_fromDoubleMu_flags.push_back(muonFromJpsi_fromDoubleMuPath); //the muon is from the jpsi
+
+      dimuon0_jpsi_flags.push_back(dimuon0_jpsi_seed);
+      dimuon43_jpsi_displaced_flags.push_back(dimuon43_jpsi_displaced_seed);
+
+      
       triggeringMuons.push_back(obj);
       if(debug){ 
 
@@ -257,6 +303,9 @@ void MuonTriggerSelector::produce(edm::Event& iEvent, const edm::EventSetup& iSe
       	std::cout<<"\t jpsitrk_NonResonant_seed"<<jpsitrk_NonResonant_seed<<std::endl;
       	std::cout<<"\t doubleMu_seed"<< doubleMu_seed<<std::endl;
 	
+	std::cout<<"\t dimuon0_jpsi_seed"<<dimuon0_jpsi_seed<<std::endl;
+	std::cout<<"\t dimuon43_jpsi_displaced_seed"<<dimuon43_jpsi_displaced_seed<<std::endl;
+
       }
       
     }//trigger objects
@@ -281,7 +330,12 @@ void MuonTriggerSelector::produce(edm::Event& iEvent, const edm::EventSetup& iSe
   std::vector<int> muonIsJpsiTrkTrg(muons->size(), 0);
   std::vector<int> muonIsJpsiTrk_PsiPrimeTrg(muons->size(), 0);
   std::vector<int> muonIsJpsiTrk_NonResonantTrg(muons->size(), 0);
+
   std::vector<int> muonIsDoubleMuTrg(muons->size(), 0);
+
+
+  std::vector<int> muonIs_dimuon0_jpsi_Trg(muons->size(), 0);
+  std::vector<int> muonIs_dimuon43_jpsi_displaced_Trg(muons->size(), 0);
 
   if(debugTrg) std::cout << "Event -------------------- " << std::endl;
   
@@ -296,6 +350,11 @@ void MuonTriggerSelector::produce(edm::Event& iEvent, const edm::EventSetup& iSe
     bool isMuonMatchedToJpsiTrk_NonResonantPath = !(muon.triggerObjectMatchByPath("HLT_DoubleMu4_LowMassNonResonantTrk_Displaced_v14")==nullptr) || ! (muon.triggerObjectMatchByPath("HLT_DoubleMu4_LowMassNonResonantTrk_Displaced_v15")==nullptr);
 
     bool isMuonMatchedToDoubleMuPath = !(muon.triggerObjectMatchByPath("HLT_DoubleMu4_3_Jpsi_v1")==nullptr) || !(muon.triggerObjectMatchByPath("HLT_DoubleMu4_3_Jpsi_v2")==nullptr);
+
+   
+    bool isMuonMatchedTo_dimuon0_jpsi_Path =  !(muon.triggerObjectMatchByPath("HLT_Dimuon0_Jpsi_NoVertexing_v7")==nullptr) || !(muon.triggerObjectMatchByPath("HLT_Dimuon0_Jpsi_NoVertexing_v8")==nullptr);
+    bool isMuonMatchedTo_dimuon43_jpsi_displaced_Path =  !(muon.triggerObjectMatchByPath("HLT_DoubleMu4_3_Jpsi_Displaced_v7")==nullptr);
+
     //if( isMuonMatchedToJpsiTrk_NonResonantPath ) std::cout << " isMuonMatchedToJpsiTrk_NonResonantPath-------------------- " << std::endl;
 
 
@@ -315,13 +374,24 @@ void MuonTriggerSelector::produce(edm::Event& iEvent, const edm::EventSetup& iSe
     int recoMuonMatchingJpsiTrk_NonResonant_index = -1;
     int trgMuonMatchingJpsiTrk_NonResonant_index = -1;
 
+
     float dRMuonMatchingDoubleMu = -1.;
     int recoMuonMatchingDoubleMu_index = -1;
     int trgMuonMatchingDoubleMu_index = -1;
 
+
+    float dRMuonMatchingDimuon0_jpsi = -1.;
+    int recoMuonMatchingDimuon0_jpsi_index = -1;
+    int trgMuonMatchingDimuon0_jpsi_index = -1;
+
+    float dRMuonMatchingDimuon43_jpsi_displaced = -1.;
+    int recoMuonMatchingDimuon43_jpsi_displaced_index = -1;
+    int trgMuonMatchingDimuon43_jpsi_displaced_index = -1;
+
     for(unsigned int iTrg=0; iTrg<triggeringMuons.size(); ++iTrg)
     {
-      if(!dimuon0Flags[iTrg] && !jpsiTrkFlags[iTrg] && !jpsiTrk_PsiPrimeFlags[iTrg] && !jpsiTrk_NonResonantFlags[iTrg] && !doubleMuFlags[iTrg]) continue;
+      if(!dimuon0Flags[iTrg] && !jpsiTrkFlags[iTrg] && !jpsiTrk_PsiPrimeFlags[iTrg] && !jpsiTrk_NonResonantFlags[iTrg] && !doubleMuFlags[iTrg] && !dimuon0_jpsi_flags[iTrg] && !dimuon43_jpsi_displaced_flags[iTrg] ) continue;
+
       //it passes the dimuon0 trigger
       
 
@@ -337,6 +407,27 @@ void MuonTriggerSelector::produce(edm::Event& iEvent, const edm::EventSetup& iSe
 	      if(debug) std::cout << " HLT = " << triggeringMuons[iTrg].pt() << " " << triggeringMuons[iTrg].eta() << " " << triggeringMuons[iTrg].phi()          << std::endl;
 	      if(debug) std::cout << " reco = " << muon.pt() << " " << muon.eta() << " " << muon.phi()          << std::endl;
       }
+      if(isMuonMatchedTo_dimuon0_jpsi_Path && dimuon0_jpsi_flags[iTrg] && (dR < dRMuonMatchingDimuon0_jpsi || dRMuonMatchingDimuon0_jpsi == -1)  && dR < maxdR_)
+	{
+	  dRMuonMatchingDimuon0_jpsi = dR;
+	  recoMuonMatchingDimuon0_jpsi_index = iMuo;
+	  trgMuonMatchingDimuon0_jpsi_index = iTrg;
+	  if(debug) std::cout<<"trigger dimuon0 jpsi "<< dimuon0_jpsi_flags[iTrg]<<std::endl;                                                                                                                                                                          
+	  if(debug) std::cout << " dR = " << dR <<std::endl;                                                                                                                                                                                                    
+	  if(debug) std::cout << " HLT = " << triggeringMuons[iTrg].pt() << " " << triggeringMuons[iTrg].eta() << " " << triggeringMuons[iTrg].phi()          << std::endl;                                                                                     
+	  if(debug) std::cout << " reco = " << muon.pt() << " " << muon.eta() << " " << muon.phi()          << std::endl;                                                                                                                                       
+	}
+      if(isMuonMatchedTo_dimuon43_jpsi_displaced_Path && dimuon0_jpsi_flags[iTrg] && (dR < dRMuonMatchingDimuon43_jpsi_displaced || dRMuonMatchingDimuon43_jpsi_displaced == -1)  && dR < maxdR_)                                                                                                    
+        {
+          dRMuonMatchingDimuon43_jpsi_displaced = dR;
+          recoMuonMatchingDimuon43_jpsi_displaced_index = iMuo;
+          trgMuonMatchingDimuon43_jpsi_displaced_index = iTrg;
+          if(debug) std::cout<<"trigger dimuon43 jpsi displaced "<< dimuon43_jpsi_displaced_flags[iTrg]<<std::endl;
+          if(debug) std::cout << " dR = " << dR <<std::endl;
+          if(debug) std::cout << " HLT = " << triggeringMuons[iTrg].pt() << " " << triggeringMuons[iTrg].eta() << " " << triggeringMuons[iTrg].phi()          << std::endl;
+          if(debug) std::cout << " reco = " << muon.pt() << " " << muon.eta() << " " << muon.phi()          << std::endl;
+        }
+
       if(isMuonMatchedToJpsiTrkPath && jpsiTrkFlags[iTrg] && (dR < dRMuonMatchingJpsiTrk || dRMuonMatchingJpsiTrk == -1)  && dR < maxdR_)
       {
 	      dRMuonMatchingJpsiTrk = dR;
@@ -380,7 +471,8 @@ void MuonTriggerSelector::produce(edm::Event& iEvent, const edm::EventSetup& iSe
 
     }
     //save reco muon 
-    if(recoMuonMatchingDimuon0_index != -1 || recoMuonMatchingJpsiTrk_index !=-1 || recoMuonMatchingJpsiTrk_PsiPrime_index !=-1 || recoMuonMatchingJpsiTrk_NonResonant_index !=-1 || recoMuonMatchingDoubleMu_index != -1)
+    if(recoMuonMatchingDimuon0_index != -1 || recoMuonMatchingJpsiTrk_index !=-1 || recoMuonMatchingJpsiTrk_PsiPrime_index !=-1 || recoMuonMatchingJpsiTrk_NonResonant_index !=-1 || recoMuonMatchingDoubleMu_index != -1 || recoMuonMatchingDimuon0_jpsi_index !=-1  || recoMuonMatchingDimuon43_jpsi_displaced_index !=-1 )
+
     {
 	    muonIsTrigger[iMuo] = 1;
 	    pat::Muon recoTriggerMuonCand(muon);
@@ -388,7 +480,12 @@ void MuonTriggerSelector::produce(edm::Event& iEvent, const edm::EventSetup& iSe
 	    recoTriggerMuonCand.addUserInt("trgMuonJpsiTrk_index", trgMuonMatchingJpsiTrk_index);
 	    recoTriggerMuonCand.addUserInt("trgMuonJpsiTrk_PsiPrime_index", trgMuonMatchingJpsiTrk_PsiPrime_index);
 	    recoTriggerMuonCand.addUserInt("trgMuonJpsiTrk_NonResonant_index", trgMuonMatchingJpsiTrk_NonResonant_index);
+
 	    recoTriggerMuonCand.addUserInt("trgMuonDoubleMu_index", trgMuonMatchingDoubleMu_index);
+
+	    recoTriggerMuonCand.addUserInt("trgMuonDimuon0_jpsi_index", trgMuonMatchingDimuon0_jpsi_index);
+	    recoTriggerMuonCand.addUserInt("trgMuonDimuon43_jpsi_displaced_index", trgMuonMatchingDimuon43_jpsi_displaced_index);    
+
 	    trgmuons_out->emplace_back(recoTriggerMuonCand);
 	    //keep track of original muon index for SelectedMuons collection
 
@@ -402,6 +499,26 @@ void MuonTriggerSelector::produce(edm::Event& iEvent, const edm::EventSetup& iSe
 	      muonIsFromJpsi_dimuon0Path[iMuo] = 0;//jpsiFromMuon_fromDimuon0_flags[trgMuonMatchingDimuon0_index];
 	      muonIsDimuon0Trg[iMuo] = 0;//dimuon0Flags[trgMuonMatchingDimuon0_index];
       }
+
+      if(recoMuonMatchingDimuon0_jpsi_index != -1)
+	{
+	  muonIs_dimuon0_jpsi_Trg[iMuo] = dimuon0_jpsi_flags[trgMuonMatchingDimuon0_jpsi_index];
+	}
+      else
+	{
+	  muonIs_dimuon0_jpsi_Trg[iMuo] = 0;
+	}
+
+      if(recoMuonMatchingDimuon43_jpsi_displaced_index != -1)
+        {
+          muonIs_dimuon43_jpsi_displaced_Trg[iMuo] = dimuon43_jpsi_displaced_flags[trgMuonMatchingDimuon43_jpsi_displaced_index];                                                                                                                                                                        
+        }
+      else
+        {
+          muonIs_dimuon43_jpsi_displaced_Trg[iMuo] = 0;
+        }
+
+
 
       if(recoMuonMatchingJpsiTrk_index != -1)
       {
@@ -508,7 +625,12 @@ void MuonTriggerSelector::produce(edm::Event& iEvent, const edm::EventSetup& iSe
     muons_out->back().addUserInt("isJpsiTrkTrg", muonIsJpsiTrkTrg[muIdx]);
     muons_out->back().addUserInt("isJpsiTrk_PsiPrimeTrg", muonIsJpsiTrk_PsiPrimeTrg[muIdx]);
     muons_out->back().addUserInt("isJpsiTrk_NonResonantTrg", muonIsJpsiTrk_NonResonantTrg[muIdx]);
+
     muons_out->back().addUserInt("isDoubleMuTrg", muonIsDoubleMuTrg[muIdx]);
+
+    muons_out->back().addUserInt("isDimuon0_jpsi_Trg",   muonIs_dimuon0_jpsi_Trg[muIdx]);
+    muons_out->back().addUserInt("isDimuon43_jpsi_diplaced_Trg",   muonIs_dimuon0_jpsi_Trg[muIdx]);
+
 
     trans_muons_out->emplace_back(muonTT);
   }
