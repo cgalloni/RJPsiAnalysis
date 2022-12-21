@@ -150,10 +150,13 @@ void BTo2Mu3PiBuilder::produce(edm::StreamID, edm::Event &evt, edm::EventSetup c
     double mu2_pvjpsi_dzErr = mu2_ptr->bestTrack()->dzError();
 
     size_t isDimuon_dimuon0Trg = abs(ll_ptr->userInt("muonpair_fromdimuon0"));
+    size_t isDimuon_dimuon0_jpsi_Trg = abs(ll_ptr->userInt("muonpair_fromdimuon0_jpsi"));
+    size_t isDimuon_dimuon0_jpsi_displaced_Trg = abs(ll_ptr->userInt("muonpair_fromdimuon43_jpsi_displaced"));
+
     size_t isDimuon_jpsiTrkTrg = abs(ll_ptr->userInt("muonpair_fromjpsitrk"));
     //size_t isDimuon_jpsiTrkTrg = abs(ll_ptr->userInt("isJpsiTrkTrg"));
     //size_t isDimuon_dimuon0Trg = abs(ll_ptr->userInt("isDimuon0Trg"));
-    if(!(isDimuon_jpsiTrkTrg)) continue;
+    if(!(isDimuon_jpsiTrkTrg || isDimuon_dimuon0Trg ||  isDimuon_dimuon0_jpsi_Trg || isDimuon_dimuon0_jpsi_displaced_Trg)) continue;
 
     // first loop on pion- this one with trigger matching
     if(debug) std::cout<<"paerticles size "<<particles->size()<<std::endl;

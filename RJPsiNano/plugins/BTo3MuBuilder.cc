@@ -165,6 +165,8 @@ void BTo3MuBuilder::produce(edm::StreamID, edm::Event &evt, edm::EventSetup cons
     
     size_t isDimuon_dimuon0Trg = abs(ll_ptr->userInt("muonpair_fromdimuon0"));
     size_t isDimuon_jpsiTrkTrg = abs(ll_ptr->userInt("muonpair_fromjpsitrk"));
+    size_t isDimuon_dimuon0_jpsi_Trg = abs(ll_ptr->userInt("muonpair_fromdimuon0_jpsi"));
+    size_t isDimuon_dimuon0_jpsi_displaced_Trg = abs(ll_ptr->userInt("muonpair_fromdimuon43_jpsi_displaced"));
     size_t isDimuon_jpsiTrk_PsiPrimeTrg = abs(ll_ptr->userInt("muonpair_fromjpsitrk_PsiPrime"));
     size_t isDimuon_jpsiTrk_NonResonantTrg = abs(ll_ptr->userInt("muonpair_fromjpsitrk_NonResonant"));
     //size_t isDimuon_jpsiTrkTrg = abs(ll_ptr->userInt("isJpsiTrkTrg"));

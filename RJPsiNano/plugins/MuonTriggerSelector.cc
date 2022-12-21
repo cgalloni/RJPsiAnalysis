@@ -364,7 +364,7 @@ void MuonTriggerSelector::produce(edm::Event& iEvent, const edm::EventSetup& iSe
 	  if(debug) std::cout << " HLT = " << triggeringMuons[iTrg].pt() << " " << triggeringMuons[iTrg].eta() << " " << triggeringMuons[iTrg].phi()          << std::endl;                                                                                     
 	  if(debug) std::cout << " reco = " << muon.pt() << " " << muon.eta() << " " << muon.phi()          << std::endl;                                                                                                                                       
 	}
-      if(isMuonMatchedTo_dimuon43_jpsi_displaced_Path && dimuon0_jpsi_flags[iTrg] && (dR < dRMuonMatchingDimuon43_jpsi_displaced || dRMuonMatchingDimuon43_jpsi_displaced == -1)  && dR < maxdR_)                                                                                                    
+      if(isMuonMatchedTo_dimuon43_jpsi_displaced_Path && dimuon43_jpsi_displaced_flags[iTrg] && (dR < dRMuonMatchingDimuon43_jpsi_displaced || dRMuonMatchingDimuon43_jpsi_displaced == -1)  && dR < maxdR_)                                                                                                    
         {
           dRMuonMatchingDimuon43_jpsi_displaced = dR;
           recoMuonMatchingDimuon43_jpsi_displaced_index = iMuo;
@@ -546,7 +546,7 @@ void MuonTriggerSelector::produce(edm::Event& iEvent, const edm::EventSetup& iSe
     muons_out->back().addUserInt("isJpsiTrk_PsiPrimeTrg", muonIsJpsiTrk_PsiPrimeTrg[muIdx]);
     muons_out->back().addUserInt("isJpsiTrk_NonResonantTrg", muonIsJpsiTrk_NonResonantTrg[muIdx]);
     muons_out->back().addUserInt("isDimuon0_jpsi_Trg",   muonIs_dimuon0_jpsi_Trg[muIdx]);
-    muons_out->back().addUserInt("isDimuon43_jpsi_diplaced_Trg",   muonIs_dimuon0_jpsi_Trg[muIdx]);
+    muons_out->back().addUserInt("isDimuon43_jpsi_displaced_Trg",   muonIs_dimuon0_jpsi_Trg[muIdx]);
 
     trans_muons_out->emplace_back(muonTT);
   }
