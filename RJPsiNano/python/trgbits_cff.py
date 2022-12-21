@@ -8,12 +8,15 @@ trgTable = cms.EDProducer( "TrgBitTableProducer",
                           l1results  = cms.InputTag("gtStage2Digis::RECO"),
                           #add interesting paths
                           paths      = cms.vstring(
-                                             "HLT_DoubleMu4_JpsiTrk_Displaced",
-                                             "HLT_Dimuon0_Jpsi3p5_Muon2",
-                                             "HLT_DoubleMu4_LowMassNonResonantTrk_Displaced",
-                                             "HLT_DoubleMu4_PsiPrimeTrk_Displaced",
-                                             "HLT_DoubleMu4_3_Jpsi"
-                                              ),
+                              "HLT_DoubleMu4_JpsiTrk_Displaced",
+                              "HLT_Dimuon0_Jpsi3p5_Muon2",
+                              "HLT_DoubleMu4_LowMassNonResonantTrk_Displaced",
+                              "HLT_DoubleMu4_PsiPrimeTrk_Displaced",
+                              "HLT_DoubleMu4_3_Jpsi",
+                              "HLT_Dimuon0_Jpsi_NoVertexing",
+                              "HLT_DoubleMu4_3_Jpsi_Displaced"              
+),
+
                            #add interesting seeds
                            seeds     = cms.vstring(
                                               ),

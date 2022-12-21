@@ -155,6 +155,8 @@ void BTo2MuTkBuilder::produce(edm::StreamID, edm::Event &evt, edm::EventSetup co
 
 
     size_t isDimuon_dimuon0Trg = abs(ll_ptr->userInt("muonpair_fromdimuon0"));
+    size_t isDimuon_dimuon0_jpsi_Trg = abs(ll_ptr->userInt("muonpair_fromdimuon0_jpsi"));
+    size_t isDimuon_dimuon43_jpsi_displaced_Trg = abs(ll_ptr->userInt("muonpair_fromdimuon43_jpsi_displaced"));
     size_t isDimuon_jpsiTrkTrg = abs(ll_ptr->userInt("muonpair_fromjpsitrk"));
     size_t isDimuon_doubleMuTrg = abs(ll_ptr->userInt("muonpair_fromdoubleMu"));
     //size_t isDimuon_jpsiTrkTrg = abs(ll_ptr->userInt("isJpsiTrkTrg"));
