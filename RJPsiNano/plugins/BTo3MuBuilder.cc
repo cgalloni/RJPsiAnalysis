@@ -173,12 +173,12 @@ void BTo3MuBuilder::produce(edm::StreamID, edm::Event &evt, edm::EventSetup cons
     //size_t isDimuon_jpsiTrkTrg = abs(ll_ptr->userInt("isJpsiTrkTrg"));
     //size_t isDimuon_dimuon0Trg = abs(ll_ptr->userInt("isDimuon0Trg"));
 
-    /* Trig:
-    if(!isDimuon_dimuon0Trg && !isDimuon_jpsiTrk_PsiPrimeTrg && !isDimuon_jpsiTrkTrg && !isDimuon_jpsiTrk_NonResonantTrg) {
+    // Trig:
+    if(!isDimuon_dimuon0Trg && !isDimuon_jpsiTrk_PsiPrimeTrg && !isDimuon_jpsiTrkTrg && !isDimuon_jpsiTrk_NonResonantTrg && !isDimuon_dimuon0_jpsi_Trg && !isDimuon_dimuon0_jpsi_displaced_Trg) {
       if(debug) std::cout<<"Not dimuon0 trigger couple"<<std::endl;
       continue;
     }
-       */
+      
     
     //Loop  on displaced muons    
     if(debug) std::cout <<"Number of muons"<<std::endl;

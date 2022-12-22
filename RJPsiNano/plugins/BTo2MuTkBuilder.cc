@@ -162,8 +162,9 @@ void BTo2MuTkBuilder::produce(edm::StreamID, edm::Event &evt, edm::EventSetup co
     //size_t isDimuon_jpsiTrkTrg = abs(ll_ptr->userInt("isJpsiTrkTrg"));
     //size_t isDimuon_dimuon0Trg = abs(ll_ptr->userInt("isDimuon0Trg"));
     if(debug) std::cout<<"isDimuon_jpsiTrkTrg  "<<isDimuon_jpsiTrkTrg<<std::endl;
+    //Trig: HLT eff:
+    if(!isDimuon_jpsiTrkTrg && !isDimuon_dimuon0Trg && !isDimuon_doubleMuTrg && !isDimuon_dimuon0_jpsi_Trg && !isDimuon_dimuon43_jpsi_displaced_Trg) continue;
 
-    //Trig: HLT eff if(!(isDimuon_jpsiTrkTrg)) continue;
 
 
     //Loop  on displaced muons    

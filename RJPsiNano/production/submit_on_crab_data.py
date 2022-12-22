@@ -14,8 +14,7 @@ config.General.workArea = 'RJPsiNANO_%s' % production_tag
 
 config.section_('Data')
 config.Data.publication = False
-#config.Data.outLFNDirBase = '/store/user/friti/%s' % ('crab_job_' + production_tag)
-config.Data.outLFNDirBase = '/store/user/garamire/%s' % ('crab_job_' + production_tag)
+config.Data.outLFNDirBase = '/store/user/cgalloni/%s' % ('crab_job_' + production_tag)
 config.Data.inputDBS = 'global'
 
 config.section_('JobType')

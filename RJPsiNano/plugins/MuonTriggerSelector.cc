@@ -629,7 +629,7 @@ void MuonTriggerSelector::produce(edm::Event& iEvent, const edm::EventSetup& iSe
     muons_out->back().addUserInt("isDoubleMuTrg", muonIsDoubleMuTrg[muIdx]);
 
     muons_out->back().addUserInt("isDimuon0_jpsi_Trg",   muonIs_dimuon0_jpsi_Trg[muIdx]);
-    muons_out->back().addUserInt("isDimuon43_jpsi_displaced_Trg",   muonIs_dimuon0_jpsi_Trg[muIdx]);
+    muons_out->back().addUserInt("isDimuon43_jpsi_displaced_Trg",   muonIs_dimuon43_jpsi_displaced_Trg[muIdx]);
 
 
     trans_muons_out->emplace_back(muonTT);
