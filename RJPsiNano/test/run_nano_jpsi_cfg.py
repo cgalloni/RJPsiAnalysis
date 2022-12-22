@@ -51,7 +51,7 @@ outputFileNANO = cms.untracked.string('_'.join(['RJPsi', extension[options.isMC]
 
 #input files (it can be a list of files)
 if not options.inputFiles:
-    options.inputFiles = ['root://cms-xrd-global.cern.ch//store/data/Run2018A/EGamma/MINIAOD/12Nov2019_UL2018-v2/100000/00D1BD00-2293-524E-949D-4BD18D7A8D5F.root'] if not options.isMC else \
+    options.inputFiles = ['root://cmsxrootd.fnal.gov//store/data/Run2018D/Charmonium/MINIAOD/12Nov2019_UL2018-v1/120000/3D4F26E7-5686-2141-A0BC-41C47223357F.root'] if not options.isMC else \
                          ["root://cms-xrd-global.cern.ch//store/mc/RunIISummer20UL18MiniAOD/HbToJPsiMuMu_TuneCP5_13TeV-pythia8-evtgen/MINIAODSIM/106X_upgrade2018_realistic_v11_L1v1-v1/00000/014EC954-4C5E-AD48-BB44-401D779323E3.root"] #Hb jpsi+X sample
                          #['root://cmsxrootd.fnal.gov//store/data/Run2018D/Charmonium/MINIAOD/12Nov2019_UL2018-v1/120000/3D4F26E7-5686-2141-A0BC-41C47223357F.root'] if not options.isMC else \
 #["root://cms-xrd-global.cern.ch//store/user/manzoni/RJPsi_Bc_PMX_HLT_RECO_MINI_28oct20_v5/RJpsi-BcToXToJpsiMuMuSelected-RunIISummer19UL18MiniAOD_1000.root"]

@@ -46,6 +46,10 @@ BTo2Mu3PTableVariables = TableDefaultVariables.clone(
     pi1Idx     = uint('pi1_idx'),
     pi2Idx     = uint('pi2_idx'),
     pi3Idx     = uint('pi3_idx'),
+    pi1Trg     = uint('pi1_trg'),
+    pi2Trg     = uint('pi2_trg'),
+    pi3Trg     = uint('pi3_trg'),
+
     bodies3_fit_pi1_pt    = ufloat('fitted_pi1_pt'),
     bodies3_fit_pi1_eta   = ufloat('fitted_pi1_eta'),
     bodies3_fit_pi1_phi   = ufloat('fitted_pi1_phi'),

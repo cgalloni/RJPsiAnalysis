@@ -183,10 +183,10 @@ void BTo2MuTkBuilder::produce(edm::StreamID, edm::Event &evt, edm::EventSetup co
       bool isPartTrg = k_ptr->userInt("isTriggering");
       if(debug) std::cout<<"isTriggering "<<isPartTrg<<std::endl;
       //ha trovato il mu displaced
-      if(!(isPartTrg)) {
-	//if(debug) std::cout<<"is NOT track triggered "<<k_ptr->pt()<<std::endl;
-	continue;
-      }
+      //if(!(isPartTrg)) {
+      //	//if(debug) std::cout<<"is NOT track triggered "<<k_ptr->pt()<<std::endl;
+      //	continue;
+      //}
       
 
       math::PtEtaPhiMLorentzVector k_p4(
@@ -222,6 +222,7 @@ void BTo2MuTkBuilder::produce(edm::StreamID, edm::Event &evt, edm::EventSetup co
       cand.addUserInt("mu1_idx", mu1_idx);
       cand.addUserInt("mu2_idx", mu2_idx);
       cand.addUserInt("k_idx", k_idx);
+      cand.addUserInt("k_trg", k_ptr->userInt("isTriggering"));
 
       cand.addUserFloat("mu1_pvjpsi_dxy", mu1_pvjpsi_dxy);
       cand.addUserFloat("mu1_pvjpsi_dz", mu1_pvjpsi_dz);

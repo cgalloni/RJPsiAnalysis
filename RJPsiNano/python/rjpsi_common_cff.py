@@ -194,6 +194,7 @@ TableDefaultVariables = cms.PSet(
 #builder for final states with 3 particles
 Final3PartTableVariables = TableDefaultVariables.clone(
     kIdx     = uint('k_idx'),
+    k_Trg     = uint('k_trg'),
     bodies3_fit_k_pt    = ufloat('fitted_k_pt'),
     bodies3_fit_k_eta   = ufloat('fitted_k_eta'),
     bodies3_fit_k_phi   = ufloat('fitted_k_phi'),

@@ -185,10 +185,10 @@ void BTo2Mu3PiBuilder::produce(edm::StreamID, edm::Event &evt, edm::EventSetup c
       
       bool isPartTrg = pi1_ptr->userInt("isTriggering");
       //ha trovato il mu displaced
-      if(!(isPartTrg)) {
-	//if(debug) std::cout<<"is NOT track triggered "<<k_ptr->pt()<<std::endl;
-	continue;
-      }
+      //if(!(isPartTrg)) {
+      //	//if(debug) std::cout<<"is NOT track triggered "<<k_ptr->pt()<<std::endl;
+      //continue;
+      //}
       
 
       math::PtEtaPhiMLorentzVector pi1_p4(
@@ -200,9 +200,9 @@ void BTo2Mu3PiBuilder::produce(edm::StreamID, edm::Event &evt, edm::EventSetup c
   
       //loop pion 2
       for(size_t pi2_idx = 0; pi2_idx < particles->size(); ++pi2_idx) {
+	if(pi2_idx == pi1_idx) continue;
 	edm::Ptr<pat::CompositeCandidate> pi2_ptr(particles, pi2_idx);
 	if( !particle_selection_(*pi2_ptr) ) continue;
-	if(pi2_idx == pi1_idx) continue;
 	// dz between track and leptons
 	//	if ( fabs(particles_ttracks->at(pi2_idx).track().dz() - mu1_ptr->bestTrack()->dz()) > 0.4 ||  fabs(particles_ttracks->at(pi2_idx).track().dz() - mu2_ptr->bestTrack()->dz()) > 0.4) continue;
 	if (fabs(particles_ttracks->at(pi2_idx).track().dz(pv_jpsi.position())) > 0.12) continue;	
@@ -222,9 +222,9 @@ void BTo2Mu3PiBuilder::produce(edm::StreamID, edm::Event &evt, edm::EventSetup c
 
 	  //loop on the third pion
 	  for(size_t pi3_idx = 0; pi3_idx < particles->size(); ++pi3_idx) {
+	    if(pi3_idx == pi1_idx or pi3_idx == pi2_idx) continue;
 	    edm::Ptr<pat::CompositeCandidate> pi3_ptr(particles, pi3_idx);
 	    if( !particle_selection_(*pi3_ptr) ) continue;
-	    if(pi3_idx == pi1_idx or pi3_idx == pi2_idx) continue;
 	    //dz requirement
 	    //  if ( fabs(particles_ttracks->at(pi3_idx).track().dz() - mu1_ptr->bestTrack()->dz()) > 0.4 ||  fabs(particles_ttracks->at(pi3_idx).track().dz() - mu2_ptr->bestTrack()->dz()) > 0.4) continue;
 	    if (fabs(particles_ttracks->at(pi3_idx).track().dz(pv_jpsi.position())) > 0.12) continue;
@@ -290,6 +290,10 @@ void BTo2Mu3PiBuilder::produce(edm::StreamID, edm::Event &evt, edm::EventSetup c
 	    cand.addUserInt("pi1_idx", pi1_idx);
 	    cand.addUserInt("pi2_idx", pi2_idx);
 	    cand.addUserInt("pi3_idx", pi3_idx);
+	    cand.addUserInt("pi1_trg", pi1_ptr->userInt("isTriggering"));
+            cand.addUserInt("pi2_trg", pi2_ptr->userInt("isTriggering"));
+            cand.addUserInt("pi3_trg", pi3_ptr->userInt("isTriggering"));
+
 
       cand.addUserFloat("mu1_pvjpsi_dxy", mu1_pvjpsi_dxy);
       cand.addUserFloat("mu1_pvjpsi_dz", mu1_pvjpsi_dz);
