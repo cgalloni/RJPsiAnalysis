@@ -17,6 +17,7 @@ BTo2Mu3PCfg.kaonSelection = cms.string(' && '.join([
     #    BuilderDefaultCfg.kaonSelection.value(),
     'pt > 0.5',
     'eta < 2.5',
+    'eta >- 2.5',
         ])
 )
 
@@ -90,6 +91,6 @@ BTo2Mu3PSequence = cms.Sequence(
 CountBTo2Mu3P = cms.EDFilter(
     "PATCandViewCountFilter",
     minNumber = cms.uint32(0),
-    maxNumber = cms.uint32(999999),
+    maxNumber = cms.uint32(99999),
     src = cms.InputTag("BTo2Mu3P")
 )  

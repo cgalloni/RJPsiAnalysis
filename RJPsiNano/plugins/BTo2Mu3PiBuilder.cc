@@ -130,7 +130,7 @@ void BTo2Mu3PiBuilder::produce(edm::StreamID, edm::Event &evt, edm::EventSetup c
   // output
   for(size_t ll_idx = 0; ll_idx < dimuons->size(); ++ll_idx) 
   {
-    if(debug) std::cout<<"Begining of the dimuon loop"<<particles->size()<<std::endl;
+    if(debug) std::cout<<"Begining of the dimuon loop"<< dimuons->size()<<std::endl;
     //std::cout << "PV " << ll_idx << ": " << vertices->at(ll_idx).position() << std::endl;
     edm::Ptr<pat::CompositeCandidate> ll_ptr(dimuons, ll_idx);
     edm::Ptr<reco::Candidate> mu1_ptr = ll_ptr->userCand("mu1");
@@ -178,11 +178,17 @@ void BTo2Mu3PiBuilder::produce(edm::StreamID, edm::Event &evt, edm::EventSetup c
        
 
       //dR requirement
+
       //if(deltaR(muons_ttracks->at(mu2_idx).track().eta(),muons_ttracks->at(mu2_idx).track().phi(),particles_ttracks->at(pi1_idx).track().eta(),particles_ttracks->at(pi1_idx).track().phi()) < 0.1 ) continue;
       //if(deltaR(muons_ttracks->at(mu1_idx).track().eta(),muons_ttracks->at(mu1_idx).track().phi(),particles_ttracks->at(pi1_idx).track().eta(),particles_ttracks->at(pi1_idx).track().phi()) < 0.1 ) continue;
       
       if(deltaR(ll_ptr->p4().eta(),ll_ptr->p4().phi(),particles_ttracks->at(pi1_idx).track().eta(),particles_ttracks->at(pi1_idx).track().phi()) > 1.0 ) continue;
       
+      if(deltaR(muons_ttracks->at(mu2_idx).track().eta(),muons_ttracks->at(mu2_idx).track().phi(),particles_ttracks->at(pi1_idx).track().eta(),particles_ttracks->at(pi1_idx).track().phi()) < 0.05 ) continue;
+      if(deltaR(muons_ttracks->at(mu1_idx).track().eta(),muons_ttracks->at(mu1_idx).track().phi(),particles_ttracks->at(pi1_idx).track().eta(),particles_ttracks->at(pi1_idx).track().phi()) < 0.05 ) continue;
+
+      if(debug) std::cout<<" pi1_ptr->pt() "<<  pi1_ptr->pt() << " idx "<< pi1_idx <<std::endl;       
+
       bool isPartTrg = pi1_ptr->userInt("isTriggering");
       //ha trovato il mu displaced
       //if(!(isPartTrg)) {
@@ -199,7 +205,7 @@ void BTo2Mu3PiBuilder::produce(edm::StreamID, edm::Event &evt, edm::EventSetup c
 					  );
   
       //loop pion 2
-      for(size_t pi2_idx = 0; pi2_idx < particles->size(); ++pi2_idx) {
+      for(size_t pi2_idx =pi1_idx+1; pi2_idx < particles->size(); ++pi2_idx) {
 	if(pi2_idx == pi1_idx) continue;
 	edm::Ptr<pat::CompositeCandidate> pi2_ptr(particles, pi2_idx);
 	if( !particle_selection_(*pi2_ptr) ) continue;
@@ -207,10 +213,12 @@ void BTo2Mu3PiBuilder::produce(edm::StreamID, edm::Event &evt, edm::EventSetup c
 	//	if ( fabs(particles_ttracks->at(pi2_idx).track().dz() - mu1_ptr->bestTrack()->dz()) > 0.4 ||  fabs(particles_ttracks->at(pi2_idx).track().dz() - mu2_ptr->bestTrack()->dz()) > 0.4) continue;
 	if (fabs(particles_ttracks->at(pi2_idx).track().dz(pv_jpsi.position())) > 0.12) continue;	
 	//DR between tracks and leptons
-	//if(deltaR(muons_ttracks->at(mu2_idx).track().eta(),muons_ttracks->at(mu2_idx).track().phi(),particles_ttracks->at(pi2_idx).track().eta(),particles_ttracks->at(pi2_idx).track().phi()) < 0.1 ) continue;
-	//if(deltaR(muons_ttracks->at(mu1_idx).track().eta(),muons_ttracks->at(mu1_idx).track().phi(),particles_ttracks->at(pi2_idx).track().eta(),particles_ttracks->at(pi2_idx).track().phi()) < 0.1 ) continue;
 
 	if(deltaR(ll_ptr->p4().eta(),ll_ptr->p4().phi(),particles_ttracks->at(pi2_idx).track().eta(),particles_ttracks->at(pi2_idx).track().phi()) > 1.0 ) continue;
+	if(deltaR(muons_ttracks->at(mu2_idx).track().eta(),muons_ttracks->at(mu2_idx).track().phi(),particles_ttracks->at(pi2_idx).track().eta(),particles_ttracks->at(pi2_idx).track().phi()) < 0.05 ) continue;
+	if(deltaR(muons_ttracks->at(mu1_idx).track().eta(),muons_ttracks->at(mu1_idx).track().phi(),particles_ttracks->at(pi2_idx).track().eta(),particles_ttracks->at(pi2_idx).track().phi()) < 0.05 ) continue;
+	if(debug) std::cout<<" pi2_ptr->pt() "<<  pi2_ptr->pt()<< " idx "<< pi2_idx  <<std::endl;      
+
 	math::PtEtaPhiMLorentzVector pi2_p4(
 					    pi2_ptr->pt(),
 					    pi2_ptr->eta(),
@@ -221,7 +229,7 @@ void BTo2Mu3PiBuilder::produce(edm::StreamID, edm::Event &evt, edm::EventSetup c
       // Put the muon passing the corresponding selection
 
 	  //loop on the third pion
-	  for(size_t pi3_idx = 0; pi3_idx < particles->size(); ++pi3_idx) {
+	  for(size_t pi3_idx =pi2_idx+1; pi3_idx < particles->size(); ++pi3_idx) {
 	    if(pi3_idx == pi1_idx or pi3_idx == pi2_idx) continue;
 	    edm::Ptr<pat::CompositeCandidate> pi3_ptr(particles, pi3_idx);
 	    if( !particle_selection_(*pi3_ptr) ) continue;
@@ -229,8 +237,8 @@ void BTo2Mu3PiBuilder::produce(edm::StreamID, edm::Event &evt, edm::EventSetup c
 	    //  if ( fabs(particles_ttracks->at(pi3_idx).track().dz() - mu1_ptr->bestTrack()->dz()) > 0.4 ||  fabs(particles_ttracks->at(pi3_idx).track().dz() - mu2_ptr->bestTrack()->dz()) > 0.4) continue;
 	    if (fabs(particles_ttracks->at(pi3_idx).track().dz(pv_jpsi.position())) > 0.12) continue;
 	    //DR requirements
-	    //if(deltaR(muons_ttracks->at(mu2_idx).track().eta(),muons_ttracks->at(mu2_idx).track().phi(),particles_ttracks->at(pi3_idx).track().eta(),particles_ttracks->at(pi3_idx).track().phi()) < 0.1 ) continue;
-	    //if(deltaR(muons_ttracks->at(mu1_idx).track().eta(),muons_ttracks->at(mu1_idx).track().phi(),particles_ttracks->at(pi3_idx).track().eta(),particles_ttracks->at(pi3_idx).track().phi()) < 0.1 ) continue;
+	    if(deltaR(muons_ttracks->at(mu2_idx).track().eta(),muons_ttracks->at(mu2_idx).track().phi(),particles_ttracks->at(pi3_idx).track().eta(),particles_ttracks->at(pi3_idx).track().phi()) < 0.05 ) continue;
+	    if(deltaR(muons_ttracks->at(mu1_idx).track().eta(),muons_ttracks->at(mu1_idx).track().phi(),particles_ttracks->at(pi3_idx).track().eta(),particles_ttracks->at(pi3_idx).track().phi()) < 0.05 ) continue;
 	    if(deltaR(ll_ptr->p4().eta(),ll_ptr->p4().phi(),particles_ttracks->at(pi3_idx).track().eta(),particles_ttracks->at(pi3_idx).track().phi()) > 1.0 ) continue;
 
 	    if(debug) std::cout<<"before dz "<<std::endl;
@@ -247,11 +255,12 @@ void BTo2Mu3PiBuilder::produce(edm::StreamID, edm::Event &evt, edm::EventSetup c
       double pi2_dzErr = particles_ttracks->at(pi2_idx).track().dzError();
       double pi3_dxyErr = particles_ttracks->at(pi3_idx).track().dxyError(pv_jpsi.position(),pv_jpsi.covariance());
       double pi3_dzErr = particles_ttracks->at(pi3_idx).track().dzError();
-
+      
 	    if(debug) std::cout<<"p1 dxy "<<pi1_dxy<<std::endl;
 	    if(debug) std::cout<<"p1 dz "<<pi1_dz<<std::endl;
 
 	    if(debug) std::cout<<"after dz "<<std::endl;
+	    if(debug) std::cout<<" pi3_ptr->pt() "<<  pi3_ptr->pt() << " idx "<< pi3_idx  <<std::endl;   
 	    math::PtEtaPhiMLorentzVector pi3_p4(
 						pi3_ptr->pt(),
 						pi3_ptr->eta(),
@@ -261,7 +270,7 @@ void BTo2Mu3PiBuilder::produce(edm::StreamID, edm::Event &evt, edm::EventSetup c
 
 	    //the other two pions don't need the trigger matching
 	    pat::CompositeCandidate cand;
-	    cand.setP4(ll_ptr->p4() + + pi1_p4 + pi2_p4 + pi3_p4);
+	    cand.setP4(ll_ptr->p4() +  pi1_p4 + pi2_p4 + pi3_p4);
 	    cand.setCharge(ll_ptr->charge() + pi1_ptr->charge() + pi2_ptr->charge() + pi3_ptr->charge());
 	    if(debug) std::cout<<"cand pt "<<cand.pt()<<std::endl;
 	    if(debug) std::cout<<"displ p1 "<<pi1_ptr->pt()<<std::endl;
@@ -326,7 +335,7 @@ void BTo2Mu3PiBuilder::produce(edm::StreamID, edm::Event &evt, edm::EventSetup c
 	    if( !pre_vtx_selection_(cand) ) continue;
 	    //std::cout << "here2" << std::endl;
 	    
-	    //        std::cout<<"PRIMA"<<std::endl;
+	    //std::cout<<"PRIMA"<<std::endl;
 	    KinVtxFitter fitter(
 				{muons_ttracks->at(mu1_idx), muons_ttracks->at(mu2_idx), particles_ttracks->at(pi1_idx),particles_ttracks->at(pi2_idx),particles_ttracks->at(pi3_idx)},
 				{mu1_ptr->mass(), mu2_ptr->mass(), PI_MASS, PI_MASS,PI_MASS},
@@ -485,6 +494,7 @@ void BTo2Mu3PiBuilder::produce(edm::StreamID, edm::Event &evt, edm::EventSetup c
 	    P_mu.Boost(-jpsi_beta_lab);
 	    cand.addUserFloat("E_mu_#",P_mu.E());
 	    */
+	    if(debug) std::cout<<"cand.mass() "<<cand.mass()<<std::endl;     
 	    if( !post_vtx_selection_(cand) ) {
 	      if(debug) std::cout<<"post vrxt dies "<<std::endl;
 	      continue;        

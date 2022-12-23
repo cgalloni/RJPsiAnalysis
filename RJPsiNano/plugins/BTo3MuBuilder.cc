@@ -196,7 +196,7 @@ void BTo3MuBuilder::produce(edm::StreamID, edm::Event &evt, edm::EventSetup cons
       double k_pvfirst_dxyErr = k_ptr->bestTrack()->dxyError(pv_first.position(),pv_first.covariance());
       double k_pvfirst_dzErr = k_ptr->bestTrack()->dzError();
   
-      /* hlt: the DoubleMu trigger doesn't have an unpaired muon, we can't require it
+      //hlt: the DoubleMu trigger doesn't have an unpaired muon, we can't require it
       //std::cout << "here1" << std::endl;
       //ha trovato il mu displaced
       bool isDimuon0Trg = k_ptr->userInt("isDimuon0Trg");
@@ -213,6 +213,7 @@ void BTo3MuBuilder::produce(edm::StreamID, edm::Event &evt, edm::EventSetup cons
       bool isUnpairedMuon_jpsiTrk = (isJpsiTrkTrg && !isMuonFromJpsi_jpsiTrkTrg) && isDimuon_jpsiTrkTrg;
       bool isUnpairedMuon_jpsiTrk_PsiPrime = (isJpsiTrk_PsiPrimeTrg && !isMuonFromJpsi_jpsiTrk_PsiPrimeTrg) && isDimuon_jpsiTrk_PsiPrimeTrg;
       bool isUnpairedMuon_jpsiTrk_NonResonant = (isJpsiTrk_NonResonantTrg && !isMuonFromJpsi_jpsiTrk_NonResonantTrg) && isDimuon_jpsiTrk_NonResonantTrg;
+      /*      
       if(debug) std::cout<<"displaced muon:"<<k_ptr->pt()<<" isDImuon0Trg "<<isDimuon0Trg<<" isMuonFromJpsi_dimuon0Trg "<<isMuonFromJpsi_dimuon0Trg<<" isUnpairedMuon "<<isUnpairedMuon_dimuon0<<std::endl;
       //      if(!(isDimuon_jpsiTrkTrg || isUnpairedMuon)) continue;
       /* Trig:
@@ -253,6 +254,7 @@ void BTo3MuBuilder::produce(edm::StreamID, edm::Event &evt, edm::EventSetup cons
       cand.addUserInt("mu1_idx", mu1_idx);
       cand.addUserInt("mu2_idx", mu2_idx);
       cand.addUserInt("k_idx", k_idx);
+      cand.addUserInt("k_trg", isUnpairedMuon_dimuon0 );
 
       cand.addUserFloat("mu1_pvjpsi_dxy", mu1_pvjpsi_dxy);
       cand.addUserFloat("mu1_pvjpsi_dz", mu1_pvjpsi_dz);
