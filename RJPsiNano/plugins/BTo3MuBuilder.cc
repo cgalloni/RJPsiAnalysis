@@ -251,6 +251,7 @@ void BTo3MuBuilder::produce(edm::StreamID, edm::Event &evt, edm::EventSetup cons
       cand.addUserInt("mu1_idx", mu1_idx);
       cand.addUserInt("mu2_idx", mu2_idx);
       cand.addUserInt("k_idx", k_idx);
+      cand.addUserInt("k_trg", isUnpairedMuon_dimuon0 );
 
       cand.addUserFloat("mu1_pvjpsi_dxy", mu1_pvjpsi_dxy);
       cand.addUserFloat("mu1_pvjpsi_dz", mu1_pvjpsi_dz);
