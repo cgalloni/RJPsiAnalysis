@@ -41,9 +41,9 @@ if __name__ == '__main__':
       try:
           crabCommand('submit', config = config)
       except HTTPException as hte:
-          print "Failed submitting task: %s" % (hte.headers)
+          print ("Failed submitting task: ",  (hte.headers))
       except ClientException as cle:
-          print "Failed submitting task: %s" % (cle)
+          print ("Failed submitting task: ",  (cle))
 
 
   parser = ArgumentParser()
@@ -64,7 +64,7 @@ if __name__ == '__main__':
         
         # filter names according to what we need
         if not fnmatch(name, args.filter): continue
-        print 'submitting', name
+        print ('submitting', name)
 
         isMC = info['isMC']
 
@@ -100,6 +100,6 @@ if __name__ == '__main__':
         
         config.JobType.outputFiles = ['_'.join(['RJPsi', 'mc' if isMC else 'data', production_tag])+'.root']
         
-        print config
+        print (config)
         submit(config)
 
