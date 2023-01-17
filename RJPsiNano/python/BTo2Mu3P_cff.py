@@ -75,6 +75,11 @@ BTo2Mu3PTableVariables = TableDefaultVariables.clone(
 
     ip3D_pvjpsi_pi3 = ufloat('ip3D_pvjpsi_pi3'),
     ip3D_pvjpsi_pi3_e = ufloat('ip3D_pvjpsi_pi3_e'),
+    
+    tau_fitted_pt     = ufloat('tau_fitted_pt'),
+    tau_vprob     = ufloat('tau_vprob'),
+    tau_fls3d     = ufloat('tau_fls3d'),
+
 )
 
 BTo2Mu3PTable = TableDefault.clone()

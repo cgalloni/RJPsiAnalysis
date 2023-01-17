@@ -6,6 +6,7 @@
 #include "RecoVertex/KinematicFitPrimitives/interface/KinematicState.h"
 #include "RecoVertex/KinematicFitPrimitives/interface/RefCountedKinematicParticle.h"
 #include "CommonTools/Statistics/interface/ChiSquaredProbability.h"
+#include "RecoVertex/VertexPrimitives/interface/VertexState.h"
 #include <vector>
 
 class KinVtxFitter {
@@ -61,6 +62,9 @@ public:
 
   const reco::TransientTrack& fitted_candidate_ttrk() const {
     return fitted_track_;
+  }
+  VertexState vertexState() const{ 
+    return fitted_vtx_->vertexState();
   }
 
   GlobalPoint fitted_vtx() const {

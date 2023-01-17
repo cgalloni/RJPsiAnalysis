@@ -17,6 +17,7 @@
 #include "DataFormats/GeometryCommonDetAlgo/interface/Measurement1D.h"
 #include <RecoBTag/BTagTools/interface/SignedImpactParameter3D.h>
 #include "DataFormats/GeometryVector/interface/GlobalVector.h"
+#include "RecoVertex/VertexTools/interface/VertexDistance3D.h"
 
 #include <vector>
 #include <memory>
@@ -335,7 +336,30 @@ void BTo2Mu3PiBuilder::produce(edm::StreamID, edm::Event &evt, edm::EventSetup c
 	    if( !pre_vtx_selection_(cand) ) continue;
 	    //std::cout << "here2" << std::endl;
 	    
-	    //std::cout<<"PRIMA"<<std::endl;
+	    //Tau Vtx 
+	    KinVtxFitter fitter_tau(
+                                { particles_ttracks->at(pi1_idx),particles_ttracks->at(pi2_idx),particles_ttracks->at(pi3_idx)},
+                                { PI_MASS, PI_MASS,PI_MASS},
+                                { PI_SIGMA,PI_SIGMA,PI_SIGMA,} //some small sigma for the muon mass                                                     
+                                );
+	    float tau_fitted_pt =0, tau_vprob=-1;
+	    if(!fitter_tau.success()) continue;
+	    tau_fitted_pt = fitter_tau.fitted_p4().pt();
+	    tau_vprob = fitter_tau.prob(); 
+	    //RefCountedKinematicVertex tau_vertex;
+	    //tau_vertex = &fitter_tau.fitted_vtx();
+	    //float tau_vprob = TMath::Prob(tau_vertex->chiSquared(), tau_vertex->degreesOfFreedom());
+	    //cand.addUserFloat("tau_vprob", tau_vprob);
+	    cand.addUserFloat("tau_fitted_pt",   tau_fitted_pt);
+	    cand.addUserFloat("tau_vprob",  tau_vprob);
+	    VertexDistance3D a3d;  
+	    Float_t fl3d = a3d.distance( pv_jpsi,  fitter_tau.vertexState()).value();
+	    Float_t fl3de = a3d.distance ( pv_jpsi , fitter_tau.vertexState()).error();
+	    Float_t fls3d = -1;	   
+	    if(fl3de!=0) fls3d = fl3d/fl3de;
+	    cand.addUserFloat("tau_fls3d",  fls3d);
+	    //std::cout<<"PRIMA"<<std::endl;c
+	    // B candidate
 	    KinVtxFitter fitter(
 				{muons_ttracks->at(mu1_idx), muons_ttracks->at(mu2_idx), particles_ttracks->at(pi1_idx),particles_ttracks->at(pi2_idx),particles_ttracks->at(pi3_idx)},
 				{mu1_ptr->mass(), mu2_ptr->mass(), PI_MASS, PI_MASS,PI_MASS},

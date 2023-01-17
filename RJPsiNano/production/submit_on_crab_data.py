@@ -27,8 +27,8 @@ config.Data.allowNonValidInputDataset = True
 
 config.section_('User')
 config.section_('Site')
-#config.Site.storageSite = 'T2_CH_CSCS'
-config.Site.storageSite = 'T2_IT_Pisa'
+config.Site.storageSite = 'T2_CH_CSCS'
+#config.Site.storageSite = 'T2_IT_Pisa'
 #config.Site.storageSite = 'T3_CH_PSI'
 
 if __name__ == '__main__':
@@ -48,7 +48,7 @@ if __name__ == '__main__':
 
 
   parser = ArgumentParser()
-  parser.add_argument('-y', '--yaml', default = 'samples_data_rjpsi_2016.yml', help = 'File with dataset descriptions')
+  parser.add_argument('-y', '--yaml', default = 'samples_data_rjpsi.yml', help = 'File with dataset descriptions')
   parser.add_argument('-f', '--filter', default='*', help = 'filter samples, POSIX regular expressions allowed')
   args = parser.parse_args()
 
