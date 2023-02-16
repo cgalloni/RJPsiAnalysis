@@ -123,7 +123,7 @@ void BTo3MuBuilder::produce(edm::StreamID, edm::Event &evt, edm::EventSetup cons
   const reco::VertexCollection* vertices = primaryVertices.product();
   int nPrimaryVertices = vertices->size();
   // output
-  if (debug) std::cout <<"number of dimuons"<<dimuons->size()<< std::endl;
+
   for(size_t ll_idx = 0; ll_idx < dimuons->size(); ++ll_idx) 
   {
     //std::cout << "PV " << ll_idx << ": " << vertices->at(ll_idx).position() << std::endl;
@@ -166,20 +166,23 @@ void BTo3MuBuilder::produce(edm::StreamID, edm::Event &evt, edm::EventSetup cons
     size_t isDimuon_dimuon0Trg = abs(ll_ptr->userInt("muonpair_fromdimuon0"));
     size_t isDimuon_jpsiTrkTrg = abs(ll_ptr->userInt("muonpair_fromjpsitrk"));
     size_t isDimuon_dimuon0_jpsi_Trg = abs(ll_ptr->userInt("muonpair_fromdimuon0_jpsi"));
-    size_t isDimuon_dimuon0_jpsi_displaced_Trg = abs(ll_ptr->userInt("muonpair_fromdimuon43_jpsi_displaced"));
+    size_t isDimuon_dimuon43_jpsi_displaced_Trg = abs(ll_ptr->userInt("muonpair_fromdimuon43_jpsi_displaced"));
     size_t isDimuon_jpsiTrk_PsiPrimeTrg = abs(ll_ptr->userInt("muonpair_fromjpsitrk_PsiPrime"));
     size_t isDimuon_jpsiTrk_NonResonantTrg = abs(ll_ptr->userInt("muonpair_fromjpsitrk_NonResonant"));
     size_t isDimuon_doubleMuTrg = abs(ll_ptr->userInt("muonpair_fromdoubleMu"));
     //size_t isDimuon_jpsiTrkTrg = abs(ll_ptr->userInt("isJpsiTrkTrg"));
     //size_t isDimuon_dimuon0Trg = abs(ll_ptr->userInt("isDimuon0Trg"));
 
+    if ( debug)
+      std::cout <<"3Mu : Trig  "<< " isDimuon_jpsiTrkTrg "<< isDimuon_jpsiTrkTrg << " isDimuon_doubleMuTrg " <<isDimuon_doubleMuTrg << " isDimuon_dimuon0Trg "<< isDimuon_dimuon0Trg << " isDimuon_dimuon0_jpsi_Trg "<< isDimuon_dimuon0_jpsi_Trg <<
+	" isDimuon_dimuon43_jpsi_displaced_Trg "<< isDimuon_dimuon43_jpsi_displaced_Trg   << " + isDimuon_jpsiTrk_PsiPrimeTrg " << isDimuon_jpsiTrk_PsiPrimeTrg << " isDimuon_jpsiTrk_NonResonantTrg "<< isDimuon_jpsiTrk_NonResonantTrg << std::endl;
     // Trig:
-    if(!isDimuon_dimuon0Trg && !isDimuon_jpsiTrk_PsiPrimeTrg && !isDimuon_jpsiTrkTrg && !isDimuon_jpsiTrk_NonResonantTrg && !isDimuon_dimuon0_jpsi_Trg && !isDimuon_dimuon0_jpsi_displaced_Trg) {
+    if(!isDimuon_dimuon0Trg && !isDimuon_jpsiTrk_PsiPrimeTrg && !isDimuon_jpsiTrkTrg && !isDimuon_jpsiTrk_NonResonantTrg && !isDimuon_dimuon0_jpsi_Trg && !isDimuon_dimuon43_jpsi_displaced_Trg) {
       if(debug) std::cout<<"Not dimuon0 trigger couple"<<std::endl;
       continue;
     }
       
-    
+      
     //Loop  on displaced muons    
     if(debug) std::cout <<"Number of muons"<<std::endl;
     for(size_t k_idx = 0; k_idx < muons->size(); ++k_idx) {

@@ -63,7 +63,7 @@ private:
 };
 
 void DiMuonBuilder::produce(edm::StreamID, edm::Event &evt, edm::EventSetup const &) const {
-
+  
   //input
   edm::Handle<MuonCollection> muons;
   evt.getByToken(src_, muons);
@@ -82,7 +82,8 @@ void DiMuonBuilder::produce(edm::StreamID, edm::Event &evt, edm::EventSetup cons
   // output
   std::unique_ptr<pat::CompositeCandidateCollection> ret_value(new pat::CompositeCandidateCollection());
   std::unique_ptr<TransientTrackCollection> dimuon_tt(new TransientTrackCollection);
-  if(debug) std::cout<<"DIMUON builder "<<std::endl;
+  //  if(debug) 
+  
   for(size_t mu1_idx = 0; mu1_idx < muons->size(); ++mu1_idx) {
     edm::Ptr<pat::Muon> mu1_ptr(muons, mu1_idx);
     if(!mu1_selection_(*mu1_ptr)) continue; 
@@ -100,7 +101,8 @@ void DiMuonBuilder::produce(edm::StreamID, edm::Event &evt, edm::EventSetup cons
     int isDimuon0_jpsi_Trg1 = mu1_ptr->userInt("isDimuon0_jpsi_Trg");
     int isDimuon43_jpsi_displaced_Trg1 = mu1_ptr->userInt("isDimuon43_jpsi_displaced_Trg");
 
-    if(debug) std::cout<< "mu1 "<<mu1_ptr->pt()<<" isMuonFromJpsi_jpsiTrk_1 "<<isMuonFromJpsi_jpsiTrk_1<<" isJpsiTrkTrg1 "<<isJpsiTrkTrg1<<std::endl;
+    if(debug) 
+      std::cout<< "mu1 "<<mu1_ptr->pt()<<" isMuonFromJpsi_jpsiTrk_1 "<<isMuonFromJpsi_jpsiTrk_1<<" isJpsiTrkTrg1 "<<isJpsiTrkTrg1<<std::endl;
 
     for(size_t mu2_idx = mu1_idx + 1; mu2_idx < muons->size(); ++mu2_idx) {
       edm::Ptr<pat::Muon> mu2_ptr(muons, mu2_idx);
@@ -139,7 +141,7 @@ void DiMuonBuilder::produce(edm::StreamID, edm::Event &evt, edm::EventSetup cons
 
 
       if(debug) std::cout<< "mu2 "<<mu2_ptr->pt()<<" isMuonFromJpsi_jpsiTrk_2 "<<isMuonFromJpsi_jpsiTrk_2<<" isJpsiTrkTrg2 "<<isJpsiTrkTrg2<<std::endl;
-      
+
       //Trig: HLT Eff
       if(!jpsitrk_trigger && !dimuon0_trigger && !jpsitrk_PsiPrime_trigger && !jpsitrk_NonResonant_trigger && !dimuon0_jpsi_trigger && !dimuon43_jpsi_displaced_trigger ) continue;
       //  std::cout << "++++DimuonBuilder::jpsitrk_NonResonant_trigger" << std::endl;
@@ -263,7 +265,8 @@ void DiMuonBuilder::produce(edm::StreamID, edm::Event &evt, edm::EventSetup cons
       
     }
   }
-  
+  if (debug)
+    std::cout<< "DiMuon size "<< ret_value->size() << std::endl;   
   evt.put(std::move(ret_value), "muonPairsForB");
   evt.put(std::move(dimuon_tt), "dimuonTransientTracks");
 }

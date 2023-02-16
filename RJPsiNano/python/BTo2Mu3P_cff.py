@@ -8,8 +8,8 @@ BTo2Mu3PCfg = BuilderDefaultCfg.clone()
 #BTo2Mu3PCfg.dimuons = cms.InputTag('JpsiMuonPairs')
 BTo2Mu3PCfg.muonTransientTracks = JpsiMuonPairs.transientTracksSrc
 BTo2Mu3PCfg.postVtxSelection = cms.string(' && '.join([
-        BuilderDefaultCfg.postVtxSelection.value(),
-        'mass > 4',
+#    BuilderDefaultCfg.postVtxSelection.value(),
+    'mass > 4',
         ])
 )
 
@@ -27,7 +27,7 @@ BTo2Mu3P = cms.EDProducer(
     srcGen = cms.InputTag("prunedGenParticles"),
     particles = cms.InputTag('tracksBPark', 'SelectedTracks'),
     particlesTransientTracks  = cms.InputTag('tracksBPark', 'SelectedTransientTracks'),
-    particleSelection         = cms.string(' && '.join([ 'pt>0.5','eta<2.5'])),
+    particleSelection         = cms.string(' && '.join([ 'pt>0.5','eta<2.5','eta>-2.5'])),
 )
 
 BTo2Mu3PTableVariables = TableDefaultVariables.clone(
