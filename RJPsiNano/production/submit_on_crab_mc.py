@@ -4,8 +4,9 @@ import yaml
 import datetime
 from fnmatch import fnmatch
 from argparse import ArgumentParser
-
+import os 
 production_tag = datetime.date.today().strftime('%Y%b%d')
+
 
 config = config()
 config.section_('General')
@@ -20,10 +21,11 @@ config.Data.inputDBS = 'global'
 
 config.section_('JobType')
 config.JobType.pluginName = 'Analysis'
-config.JobType.psetName = '../test/run_nano_jpsi_cfg.py'
-config.JobType.inputFiles = ['crab_script_mc.sh', '../test/run_nano_jpsi_cfg.py', 'puReweight.py','PileupHistogram-goldenJSON-13tev-2018-100bins_withVar.root']
+config.JobType.psetName = '../test/run_nano_jpsi_2mu_cfg.py'
+config.JobType.inputFiles = ['crab_script_mc_job.sh', '../test/run_nano_jpsi_2mu_cfg.py', 'puReweight_2016.py', 'pileup/pileup_2016GH.root']
+#'pileup/PileupHistogram-UL2016-100bins_withVar.root']
 #config.JobType.psetName = 'PSet.py'
-config.JobType.scriptExe = 'crab_script_mc.sh'
+config.JobType.scriptExe = 'crab_script_mc_job.sh'
 #config.JobType.maxJobRuntimeMin = 3000
 config.JobType.allowUndistributedCMSSW = True
 config.Data.allowNonValidInputDataset = True
@@ -34,6 +36,7 @@ config.Site.storageSite = 'T2_CH_CSCS'
 
 if __name__ == '__main__':
 
+  os.system("cp crab_script_mc.sh crab_script_mc_job.sh; sed -i s/TAGDATE/{}/ crab_script_mc_job.sh;".format(production_tag))
   from CRABAPI.RawCommand import crabCommand
   from CRABClient.ClientExceptions import ClientException
   from httplib import HTTPException
@@ -49,7 +52,7 @@ if __name__ == '__main__':
 
 
   parser = ArgumentParser()
-  parser.add_argument('-y', '--yaml', default = 'samples_mc_rjpsi.yml', help = 'File with dataset descriptions')
+  parser.add_argument('-y', '--yaml', default = 'samples_mc_rjpsi_2016.yml', help = 'File with dataset descriptions')
   parser.add_argument('-f', '--filter', default='*', help = 'filter samples, POSIX regular expressions allowed')
   args = parser.parse_args()
 
@@ -76,7 +79,9 @@ if __name__ == '__main__':
         #config.General.requestName = name + '2'
         config.General.requestName = name 
         common_branch = 'mc' if isMC else 'data'
-        config.Data.splitting = 'FileBased' if isMC else 'LumiBased'
+        #config.Data.splitting = 'FileBased' if isMC else 'LumiBased'
+        config.Data.splitting = 'EventAwareLumiBased' if isMC else 'LumiBased' 
+        config.Data.unitsPerJob = 15000  #for 2017  
         if not isMC:
             config.Data.lumiMask = info.get(
                 'lumimask', 
@@ -85,17 +90,17 @@ if __name__ == '__main__':
         else:
             config.Data.lumiMask = ''
 
-        config.Data.unitsPerJob = info.get(
-            'splitting',
-            common[common_branch].get('splitting', None)
-        )
+        #config.Data.unitsPerJob = info.get(
+        #    'splitting',
+        #    common[common_branch].get('splitting', None)
+        #)
         globaltag = info.get(
             'globaltag',
             common[common_branch].get('globaltag', None)
         )
         
         config.JobType.pyCfgParams = [
-            'isMC=%s' % isMC, 'reportEvery=1000',
+            'isMC=%s' % isMC, 'reportEvery=5000',
             'tag=%s' % production_tag,
             'globalTag=%s' % globaltag,
         ]

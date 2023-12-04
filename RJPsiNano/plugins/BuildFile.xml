@@ -24,6 +24,10 @@
 <use   name="TrackingTools/Records"/>
 <use   name="TrackingTools/IPTools"/>
 <use   name="TrackingTools/GsfTracking"/>
+<use name="DataFormats/L1Trigger"/> 
+<use name="L1Trigger/L1TGlobal"/> 
+<use name="L1Trigger/GlobalTriggerAnalyzer"/>
+<use name="HLTrigger/HLTcore"/> 
 <!--flags CXXFLAGS="-g"/-->  
 <library   file="*.cc" name="PhysicsToolsBParkingNanoPlugins">
   <flags   EDM_PLUGIN="1"/>

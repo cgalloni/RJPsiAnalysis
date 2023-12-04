@@ -18,6 +18,24 @@
 #include <RecoBTag/BTagTools/interface/SignedImpactParameter3D.h>
 #include "DataFormats/GeometryVector/interface/GlobalVector.h"
 
+#include "RecoVertex/VertexTools/interface/VertexDistance3D.h"
+#include "TrackingTools/Records/interface/TransientTrackRecord.h"
+#include "TrackingTools/GeomPropagators/interface/AnalyticalImpactPointExtrapolator.h"
+#include "TrackingTools/PatternTools/interface/TransverseImpactPointExtrapolator.h"
+#include "TrackingTools/PatternTools/interface/ClosestApproachInRPhi.h"
+#include "MagneticField/Engine/interface/MagneticField.h"
+#include "MagneticField/Records/interface/IdealMagneticFieldRecord.h"
+#include "TrackingTools/PatternTools/interface/TSCBLBuilderNoMaterial.h"
+
+#include "RecoVertex/KinematicFitPrimitives/interface/RefCountedKinematicTree.h"
+#include "RecoVertex/KinematicFitPrimitives/interface/KinematicParticleFactoryFromTransientTrack.h"
+#include "RecoVertex/KinematicFit/interface/KinematicParticleFitter.h"
+#include "RecoVertex/KinematicFit/interface/KinematicParticleVertexFitter.h"
+#include "RecoVertex/KinematicFit/interface/KinematicConstrainedVertexFitter.h"
+#include "RecoVertex/KinematicFit/interface/MassKinematicConstraint.h"
+#include "RecoVertex/KinematicFit/interface/MultiTrackMassKinematicConstraint.h"
+
+
 #include <vector>
 #include <memory>
 #include <map>
@@ -67,6 +85,9 @@ public:
   int  getPVIdx(const reco::VertexCollection*,const reco::TransientTrack&) const;
   Measurement1D getIP(edm::Ptr<pat::CompositeCandidate> ll_ptr, reco::Vertex pv, reco::TransientTrack transientTrackMu) const;
 
+  FreeTrajectoryState initialFreeState(const reco::Track& tk, const MagneticField *field) const;
+  std::tuple<Bool_t, RefCountedKinematicParticle, RefCountedKinematicVertex, RefCountedKinematicTree> KinematicFit(std::vector<RefCountedKinematicParticle> particles, Float_t constrain_mass, Float_t constrain_error) const;
+  bool basicTrackcut(reco::Track) const;
   static void fillDescriptions(edm::ConfigurationDescriptions &descriptions) {}
   
   private:
@@ -86,11 +107,10 @@ public:
   const StringCutObjectSelector<pat::PackedCandidate> isotrk_selection_; 
   const double particle_mass;
 
-
   const edm::EDGetTokenT<reco::BeamSpot> beamspot_;  
 };
 
-void BTo2MuTkBuilder::produce(edm::StreamID, edm::Event &evt, edm::EventSetup const &) const {
+void BTo2MuTkBuilder::produce(edm::StreamID, edm::Event &evt, const edm::EventSetup& iSetup) const {
 
   //input
   edm::Handle<pat::CompositeCandidateCollection> dimuons;
@@ -163,17 +183,36 @@ void BTo2MuTkBuilder::produce(edm::StreamID, edm::Event &evt, edm::EventSetup co
     //size_t isDimuon_dimuon0Trg = abs(ll_ptr->userInt("isDimuon0Trg"));
     if(debug) std::cout<<"isDimuon_jpsiTrkTrg  "<<isDimuon_jpsiTrkTrg<<std::endl;
     //Trig: HLT eff:
-    if(!isDimuon_jpsiTrkTrg && !isDimuon_dimuon0Trg && !isDimuon_doubleMuTrg && !isDimuon_dimuon0_jpsi_Trg && !isDimuon_dimuon43_jpsi_displaced_Trg) continue;
+    //    if(!isDimuon_jpsiTrkTrg && !isDimuon_dimuon0Trg && !isDimuon_doubleMuTrg && !isDimuon_dimuon0_jpsi_Trg && !isDimuon_dimuon43_jpsi_displaced_Trg) continue;
 
 
 
-    //Loop  on displaced muons    
+    //Loop  on displaced particles/tracks     
     if(debug) std::cout<<"paerticles size "<<particles->size()<<std::endl;
     for(size_t k_idx = 0; k_idx < particles->size(); ++k_idx) {
       edm::Ptr<pat::CompositeCandidate> k_ptr(particles, k_idx);
-      if( !particle_selection_(*k_ptr) ) continue;
+      if( !(particle_selection_(*k_ptr) && BTo2MuTkBuilder::basicTrackcut(particles_ttracks->at(k_idx).track()) )) continue;
 
-      
+      if (deltaR(ll_ptr->p4().eta(),
+                 ll_ptr->p4().phi(),
+                 particles_ttracks->at(k_idx).track().eta(),
+                 particles_ttracks->at(k_idx).track().phi()) > 1.0)
+        continue;
+
+      if (deltaR(muons_ttracks->at(mu2_idx).track().eta(),
+                 muons_ttracks->at(mu2_idx).track().phi(),
+                 particles_ttracks->at(k_idx).track().eta(),
+                 particles_ttracks->at(k_idx).track().phi()) < 0.005)
+        continue;
+      if (deltaR(muons_ttracks->at(mu1_idx).track().eta(),
+                 muons_ttracks->at(mu1_idx).track().phi(),
+                 particles_ttracks->at(k_idx).track().eta(),
+                 particles_ttracks->at(k_idx).track().phi()) < 0.005)
+        continue;
+      if (fabs(particles_ttracks->at(k_idx).track().dz(pv_jpsi.position())) > 0.12){
+        continue;
+      }
+
       double k_pvjpsi_dxy = particles_ttracks->at(k_idx).track().dxy(pv_jpsi.position());
       double k_pvjpsi_dz = particles_ttracks->at(k_idx).track().dz(pv_jpsi.position());
       double k_pvjpsi_dxyErr = particles_ttracks->at(k_idx).track().dxyError(pv_jpsi.position(),pv_jpsi.covariance());
@@ -207,6 +246,21 @@ void BTo2MuTkBuilder::produce(edm::StreamID, edm::Event &evt, edm::EventSetup co
 
       cand.addUserInt("pvjpsi_idx", pvIdx);
       cand.addUserInt("nPrimaryVertices", nPrimaryVertices);
+
+      // d0sig for candidate pions                                                                                                                                                                                                              
+      const MagneticField                 *fMagneticField;
+      edm::ESHandle<MagneticField> fieldHandle;
+      iSetup.get<IdealMagneticFieldRecord>().get(fieldHandle);
+      fMagneticField = fieldHandle.product();
+
+      AnalyticalImpactPointExtrapolator extrapolator(fMagneticField);
+      TransverseImpactPointExtrapolator extrapolatort(fMagneticField);
+      TSCBLBuilderNoMaterial blsBuilder;
+
+      FreeTrajectoryState InitialFTS = BTo2MuTkBuilder::initialFreeState(particles_ttracks->at(k_idx).track(), fMagneticField);
+      TrajectoryStateClosestToBeamLine tscb(blsBuilder(InitialFTS, *beamspot));
+      float d0sig = tscb.transverseImpactParameter().significance();
+      cand.addUserFloat("k_d0sig", d0sig);
 
       // tracks info
       if(debug) std::cout<<"cand pt "<<cand.pt()<<std::endl;
@@ -242,7 +296,9 @@ void BTo2MuTkBuilder::produce(edm::StreamID, edm::Event &evt, edm::EventSetup co
 
       cand.addUserFloat("min_dr", dr_info.first);
       cand.addUserFloat("max_dr", dr_info.second);
-      // TODO add meaningful variables
+  
+      cand.addUserFloat("k_jpsi_dR",deltaR(ll_ptr->eta(),ll_ptr->phi(),k_ptr->eta(),k_ptr->phi())); 
+    // TODO add meaningful variables
       
       if( !pre_vtx_selection_(cand) ) continue;
       //std::cout << "here2" << std::endl;
@@ -267,7 +323,6 @@ void BTo2MuTkBuilder::produce(edm::StreamID, edm::Event &evt, edm::EventSetup co
       const reco::TransientTrack& threemuonTT = fitter.fitted_candidate_ttrk();
       
       Measurement1D ip3D_pvjpsi = getIP(ll_ptr, pv_jpsi, particles_ttracks->at(k_idx));
-
 
       cand.addUserFloat("ip3D_pvjpsi", ip3D_pvjpsi.value());
       cand.addUserFloat("ip3D_pvjpsi_e", ip3D_pvjpsi.error());
@@ -526,5 +581,70 @@ int BTo2MuTkBuilder::getPVIdx(const reco::VertexCollection* vertices,const reco:
     if(debug) std::cout<< "Best vertex id: " << pvIdx << std::endl;
   return pvIdx;
 }
+
+FreeTrajectoryState BTo2MuTkBuilder::initialFreeState(const reco::Track& tk, const MagneticField *field) const {
+   Basic3DVector<float> pos(tk.vertex());
+   GlobalPoint gpos(pos);
+   Basic3DVector<float> mom(tk.momentum());
+   GlobalVector gmom(mom);
+   GlobalTrajectoryParameters par(gpos, gmom, tk.charge(), field);
+   CurvilinearTrajectoryError err(tk.covariance());
+   return FreeTrajectoryState(par, err);
+}
+std::tuple<Bool_t, RefCountedKinematicParticle, RefCountedKinematicVertex, RefCountedKinematicTree> BTo2MuTkBuilder::KinematicFit(std::vector<RefCountedKinematicParticle> particles, Float_t constrain_mass, Float_t constrain_error) const{
+
+   //creating the vertex fitter                                                                                                                                                                                                             
+  
+   KinematicParticleVertexFitter kpvFitter;
+
+   //reconstructing a J/Psi decay                                                                                                                                                                                                             
+  
+   RefCountedKinematicTree tree = kpvFitter.fit(particles);
+   RefCountedKinematicParticle part; // = tree->currentParticle();                                                                                                                                                                              
+  
+   RefCountedKinematicVertex vertex; // = tree->currentDecayVertex();                                                                                                                                                                           
+  
+
+   if(!tree->isEmpty() && tree->isValid() && tree->isConsistent()) {  
+     //creating the particle fitter 
+     KinematicParticleFitter csFitter;
+     // creating the constraint                                                                                                                                                                                                                   
+     if(constrain_mass!=-1){
+       //      std::cout << "Constrained fit with mass = " << constrain_mass << " error = " <<  constrain_error << std::endl;                                                                                                                
+       KinematicConstraint* constraint = new MassKinematicConstraint(constrain_mass, constrain_error);
+       //the constrained fit                                                                                                                                                                                                          
+       tree = csFitter.fit(constraint, tree);
+     }                                                                                                                                                                             
+     tree->movePointerToTheTop();
+     part = tree->currentParticle();
+
+     if(part->currentState().isValid()){
+
+       vertex = tree->currentDecayVertex();
+
+       if(vertex->vertexIsValid()){
+
+	 if(TMath::Prob(vertex->chiSquared(), vertex->degreesOfFreedom()) > 0){
+
+	   return std::forward_as_tuple(true, part, vertex, tree);
+
+	 }
+       }
+     }
+   }
+
+   
+   return std::forward_as_tuple(false, part, vertex, tree);
+
+}
+bool BTo2MuTkBuilder::basicTrackcut(reco::Track track) const{
+   if(!track.quality(reco::TrackBase::highPurity)) return false;
+   if(track.hitPattern().numberOfValidPixelHits() < 0) return false;
+   if(track.hitPattern().numberOfValidHits() < 3) return false;
+   if(track.normalizedChi2() > 100) return false;
+
+   return true;
+}
+
 #include "FWCore/Framework/interface/MakerMacros.h"
 DEFINE_FWK_MODULE(BTo2MuTkBuilder);

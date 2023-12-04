@@ -18,17 +18,6 @@
 #include <RecoBTag/BTagTools/interface/SignedImpactParameter3D.h>
 #include "DataFormats/GeometryVector/interface/GlobalVector.h"
 
-
-#include "RecoVertex/VertexTools/interface/VertexDistance3D.h"
-#include "TrackingTools/Records/interface/TransientTrackRecord.h"
-#include "TrackingTools/GeomPropagators/interface/AnalyticalImpactPointExtrapolator.h"
-#include "TrackingTools/PatternTools/interface/TransverseImpactPointExtrapolator.h"
-#include "TrackingTools/PatternTools/interface/ClosestApproachInRPhi.h"
-#include "MagneticField/Engine/interface/MagneticField.h"
-#include "MagneticField/Records/interface/IdealMagneticFieldRecord.h"
-#include "TrackingTools/PatternTools/interface/TSCBLBuilderNoMaterial.h"
-
-
 #include <vector>
 #include <memory>
 #include <map>
@@ -46,7 +35,7 @@ constexpr bool debugGen = false;
 constexpr bool debug = false;
 
 
-class BTo3MuBuilder : public edm::global::EDProducer<> {
+class BTo2MuBuilder : public edm::global::EDProducer<> {
 
   // perhaps we need better structure here (begin run etc)
 public:
@@ -54,7 +43,7 @@ public:
   typedef std::vector<reco::GenParticle> GenParticleCollection;
   //typedef std::vector<KinVtxFitter> KinVtxFitterCollection;
 
-  explicit BTo3MuBuilder(const edm::ParameterSet &cfg):
+  explicit BTo2MuBuilder(const edm::ParameterSet &cfg):
     k_selection_{cfg.getParameter<std::string>("muonSelection")},
     pre_vtx_selection_{cfg.getParameter<std::string>("preVtxSelection")},
     post_vtx_selection_{cfg.getParameter<std::string>("postVtxSelection")},
@@ -71,12 +60,12 @@ public:
       produces<pat::CompositeCandidateCollection>();
   }
 
-  ~BTo3MuBuilder() override {}
+  ~BTo2MuBuilder() override {}
   
   void produce(edm::StreamID, edm::Event&, const edm::EventSetup&) const override;
   int  getPVIdx(const reco::VertexCollection*,const reco::TransientTrack&) const;
   Measurement1D getIP(edm::Ptr<pat::CompositeCandidate> ll_ptr, reco::Vertex pv, reco::TransientTrack transientTrackMu) const;
-  FreeTrajectoryState initialFreeState(const reco::Track& tk, const MagneticField *field) const;
+
   static void fillDescriptions(edm::ConfigurationDescriptions &descriptions) {}
   
   private:
@@ -98,7 +87,7 @@ public:
   const edm::EDGetTokenT<reco::BeamSpot> beamspot_;  
 };
 
-void BTo3MuBuilder::produce(edm::StreamID, edm::Event &evt, const edm::EventSetup& iSetup) const {
+void BTo2MuBuilder::produce(edm::StreamID, edm::Event &evt, edm::EventSetup const &) const {
 
   //input
   edm::Handle<pat::CompositeCandidateCollection> dimuons;
@@ -136,7 +125,7 @@ void BTo3MuBuilder::produce(edm::StreamID, edm::Event &evt, const edm::EventSetu
   // output
 
   for(size_t ll_idx = 0; ll_idx < dimuons->size(); ++ll_idx) 
-  {
+    {
     //std::cout << "PV " << ll_idx << ": " << vertices->at(ll_idx).position() << std::endl;
     edm::Ptr<pat::CompositeCandidate> ll_ptr(dimuons, ll_idx);
     edm::Ptr<reco::Candidate> mu1_ptr = ll_ptr->userCand("mu1");
@@ -187,7 +176,7 @@ void BTo3MuBuilder::produce(edm::StreamID, edm::Event &evt, const edm::EventSetu
     //size_t isDimuon_dimuon0Trg = abs(ll_ptr->userInt("isDimuon0Trg"));
 
     if ( debug)
-      std::cout <<"3Mu : Trig  "<< " isDimuon_jpsiTrkTrg "<< isDimuon_jpsiTrkTrg << " isDimuon_doubleMuTrg " <<isDimuon_doubleMuTrg << " isDimuon_dimuon0Trg "<< isDimuon_dimuon0Trg << " isDimuon_dimuon0_jpsi_Trg "<< isDimuon_dimuon0_jpsi_Trg <<
+      std::cout <<"2Mu : Trig  "<< " isDimuon_jpsiTrkTrg "<< isDimuon_jpsiTrkTrg << " isDimuon_doubleMuTrg " <<isDimuon_doubleMuTrg << " isDimuon_dimuon0Trg "<< isDimuon_dimuon0Trg << " isDimuon_dimuon0_jpsi_Trg "<< isDimuon_dimuon0_jpsi_Trg <<
 	" isDimuon_dimuon43_jpsi_displaced_Trg "<< isDimuon_dimuon43_jpsi_displaced_Trg   << " + isDimuon_jpsiTrk_PsiPrimeTrg " << isDimuon_jpsiTrk_PsiPrimeTrg << " isDimuon_jpsiTrk_NonResonantTrg "<< isDimuon_jpsiTrk_NonResonantTrg<< "isDimuon_fromMu8Trg "<< isDimuon_fromMu8Trg << std::endl;
     // Trig:
     if(!isDimuon_dimuon0Trg && !isDimuon_jpsiTrk_PsiPrimeTrg && !isDimuon_jpsiTrkTrg && !isDimuon_jpsiTrk_NonResonantTrg && !isDimuon_dimuon0_jpsi_Trg && !isDimuon_dimuon43_jpsi_displaced_Trg 
@@ -201,78 +190,62 @@ void BTo3MuBuilder::produce(edm::StreamID, edm::Event &evt, const edm::EventSetu
       
     //Loop  on displaced muons    
     if(debug) std::cout <<"Number of muons"<<std::endl;
-    for(size_t k_idx = 0; k_idx < muons->size(); ++k_idx) {
-      edm::Ptr<pat::Muon> k_ptr(muons, k_idx);
-      if((mu1_idx == k_idx) || (mu2_idx == k_idx)) continue;
-      if( !k_selection_(*k_ptr) ) continue;
-      double k_pvjpsi_dxy = k_ptr->bestTrack()->dxy(pv_jpsi.position());
-      double k_pvjpsi_dz = k_ptr->bestTrack()->dz(pv_jpsi.position());
-      double k_pvjpsi_dxyErr = k_ptr->bestTrack()->dxyError(pv_jpsi.position(),pv_jpsi.covariance());
-      double k_pvjpsi_dzErr = k_ptr->bestTrack()->dzError();
+    // for(size_t k_idx = 0; k_idx < muons->size(); ++k_idx) {
+    //   edm::Ptr<pat::Muon> k_ptr(muons, k_idx);
+    //   if((mu1_idx == k_idx) || (mu2_idx == k_idx)) continue;
+    //   if( !k_selection_(*k_ptr) ) continue;
+    //   double k_pvjpsi_dxy = k_ptr->bestTrack()->dxy(pv_jpsi.position());
+    //   double k_pvjpsi_dz = k_ptr->bestTrack()->dz(pv_jpsi.position());
+    //   double k_pvjpsi_dxyErr = k_ptr->bestTrack()->dxyError(pv_jpsi.position(),pv_jpsi.covariance());
+    //   double k_pvjpsi_dzErr = k_ptr->bestTrack()->dzError();
 
-      double k_pvfirst_dxy = k_ptr->bestTrack()->dxy(pv_first.position());
-      double k_pvfirst_dz = k_ptr->bestTrack()->dz(pv_first.position());
-      double k_pvfirst_dxyErr = k_ptr->bestTrack()->dxyError(pv_first.position(),pv_first.covariance());
-      double k_pvfirst_dzErr = k_ptr->bestTrack()->dzError();
+    //   double k_pvfirst_dxy = k_ptr->bestTrack()->dxy(pv_first.position());
+    //   double k_pvfirst_dz = k_ptr->bestTrack()->dz(pv_first.position());
+    //   double k_pvfirst_dxyErr = k_ptr->bestTrack()->dxyError(pv_first.position(),pv_first.covariance());
+    //   double k_pvfirst_dzErr = k_ptr->bestTrack()->dzError();
   
-      //hlt: the DoubleMu trigger doesn't have an unpaired muon, we can't require it
-      //std::cout << "here1" << std::endl;
-      //ha trovato il mu displaced
-      bool isDimuon0Trg = k_ptr->userInt("isDimuon0Trg");
-      bool isJpsiTrkTrg = k_ptr->userInt("isJpsiTrkTrg");
-      bool isJpsiTrk_PsiPrimeTrg = k_ptr->userInt("isJpsiTrk_PsiPrimeTrg");
-      bool isJpsiTrk_NonResonantTrg = k_ptr->userInt("isJpsiTrk_NonResonantTrg");
+    //   //hlt: the DoubleMu trigger doesn't have an unpaired muon, we can't require it
+    //   //std::cout << "here1" << std::endl;
+    //   //ha trovato il mu displaced
+    //   bool isDimuon0Trg = k_ptr->userInt("isDimuon0Trg");
+    //   bool isJpsiTrkTrg = k_ptr->userInt("isJpsiTrkTrg");
+    //   bool isJpsiTrk_PsiPrimeTrg = k_ptr->userInt("isJpsiTrk_PsiPrimeTrg");
+    //   bool isJpsiTrk_NonResonantTrg = k_ptr->userInt("isJpsiTrk_NonResonantTrg");
       
-      bool isMuonFromJpsi_dimuon0Trg = k_ptr->userInt("isMuonFromJpsi_dimuon0Trg");
-      bool isMuonFromJpsi_jpsiTrkTrg = k_ptr->userInt("isMuonFromJpsi_jpsiTrkTrg");
-      bool isMuonFromJpsi_jpsiTrk_PsiPrimeTrg = k_ptr->userInt("isMuonFromJpsi_jpsiTrk_PsiPrimeTrg");
-      bool isMuonFromJpsi_jpsiTrk_NonResonantTrg = k_ptr->userInt("isMuonFromJpsi_jpsiTrk_NonResonantTrg");
+    //   bool isMuonFromJpsi_dimuon0Trg = k_ptr->userInt("isMuonFromJpsi_dimuon0Trg");
+    //   bool isMuonFromJpsi_jpsiTrkTrg = k_ptr->userInt("isMuonFromJpsi_jpsiTrkTrg");
+    //   bool isMuonFromJpsi_jpsiTrk_PsiPrimeTrg = k_ptr->userInt("isMuonFromJpsi_jpsiTrk_PsiPrimeTrg");
+    //   bool isMuonFromJpsi_jpsiTrk_NonResonantTrg = k_ptr->userInt("isMuonFromJpsi_jpsiTrk_NonResonantTrg");
 
-      bool isUnpairedMuon_dimuon0 = (isDimuon0Trg && !isMuonFromJpsi_dimuon0Trg) && isDimuon_dimuon0Trg;
-      bool isUnpairedMuon_jpsiTrk = (isJpsiTrkTrg && !isMuonFromJpsi_jpsiTrkTrg) && isDimuon_jpsiTrkTrg;
-      bool isUnpairedMuon_jpsiTrk_PsiPrime = (isJpsiTrk_PsiPrimeTrg && !isMuonFromJpsi_jpsiTrk_PsiPrimeTrg) && isDimuon_jpsiTrk_PsiPrimeTrg;
-      bool isUnpairedMuon_jpsiTrk_NonResonant = (isJpsiTrk_NonResonantTrg && !isMuonFromJpsi_jpsiTrk_NonResonantTrg) && isDimuon_jpsiTrk_NonResonantTrg;
-      /*      
-      if(debug) std::cout<<"displaced muon:"<<k_ptr->pt()<<" isDImuon0Trg "<<isDimuon0Trg<<" isMuonFromJpsi_dimuon0Trg "<<isMuonFromJpsi_dimuon0Trg<<" isUnpairedMuon "<<isUnpairedMuon_dimuon0<<std::endl;
-      //      if(!(isDimuon_jpsiTrkTrg || isUnpairedMuon)) continue;
-      /* Trig:
-      if(!(isUnpairedMuon_dimuon0 && isDimuon_dimuon0Trg) && 
-         !(isUnpairedMuon_jpsiTrk && isDimuon_jpsiTrkTrg) && 
-         !(isUnpairedMuon_jpsiTrk_PsiPrime && isDimuon_jpsiTrk_PsiPrimeTrg) && 
-         !(isUnpairedMuon_jpsiTrk_NonResonant && isDimuon_jpsiTrk_NonResonantTrg)) continue;
-       */
-
-
-      const MagneticField                 *fMagneticField;
-      edm::ESHandle<MagneticField> fieldHandle; 
-      iSetup.get<IdealMagneticFieldRecord>().get(fieldHandle);
-      fMagneticField = fieldHandle.product();
-
-      AnalyticalImpactPointExtrapolator extrapolator(fMagneticField); 
-      TransverseImpactPointExtrapolator extrapolatort(fMagneticField);
-      TSCBLBuilderNoMaterial blsBuilder;
-
-      //FreeTrajectoryState InitialFTS = BTo3MuBuilder::initialFreeState(particles_ttracks->at(k_idx).track(), fMagneticField);
-      FreeTrajectoryState InitialFTS = BTo3MuBuilder::initialFreeState(*(k_ptr->bestTrack()), fMagneticField); 
-      TrajectoryStateClosestToBeamLine tscb(blsBuilder(InitialFTS, *beamspot));
-      float d0sig = tscb.transverseImpactParameter().significance();
-
+    //   bool isUnpairedMuon_dimuon0 = (isDimuon0Trg && !isMuonFromJpsi_dimuon0Trg) && isDimuon_dimuon0Trg;
+    //   bool isUnpairedMuon_jpsiTrk = (isJpsiTrkTrg && !isMuonFromJpsi_jpsiTrkTrg) && isDimuon_jpsiTrkTrg;
+    //   bool isUnpairedMuon_jpsiTrk_PsiPrime = (isJpsiTrk_PsiPrimeTrg && !isMuonFromJpsi_jpsiTrk_PsiPrimeTrg) && isDimuon_jpsiTrk_PsiPrimeTrg;
+    //   bool isUnpairedMuon_jpsiTrk_NonResonant = (isJpsiTrk_NonResonantTrg && !isMuonFromJpsi_jpsiTrk_NonResonantTrg) && isDimuon_jpsiTrk_NonResonantTrg;
+    //   /*      
+    //   if(debug) std::cout<<"displaced muon:"<<k_ptr->pt()<<" isDImuon0Trg "<<isDimuon0Trg<<" isMuonFromJpsi_dimuon0Trg "<<isMuonFromJpsi_dimuon0Trg<<" isUnpairedMuon "<<isUnpairedMuon_dimuon0<<std::endl;
+    //   //      if(!(isDimuon_jpsiTrkTrg || isUnpairedMuon)) continue;
+    //   /* Trig:
+    //   if(!(isUnpairedMuon_dimuon0 && isDimuon_dimuon0Trg) && 
+    //      !(isUnpairedMuon_jpsiTrk && isDimuon_jpsiTrkTrg) && 
+    //      !(isUnpairedMuon_jpsiTrk_PsiPrime && isDimuon_jpsiTrk_PsiPrimeTrg) && 
+    //      !(isUnpairedMuon_jpsiTrk_NonResonant && isDimuon_jpsiTrk_NonResonantTrg)) continue;
+    //    */
       
-      math::PtEtaPhiMLorentzVector k_p4(
-                k_ptr->pt(), 
-                k_ptr->eta(),
-                k_ptr->phi(),
-                k_ptr->mass()
-                );
+    //   math::PtEtaPhiMLorentzVector k_p4(
+    //             k_ptr->pt(), 
+    //             k_ptr->eta(),
+    //             k_ptr->phi(),
+    //             k_ptr->mass()
+    //             );
   
-      //std::cout << "Here" << std::endl;
-      // Use UserCands as they should not use memory but keep the Ptr itself
-      // Put the muon passing the corresponding selection
+    //   //std::cout << "Here" << std::endl;
+    //   // Use UserCands as they should not use memory but keep the Ptr itself
+    //   // Put the muon passing the corresponding selection
 
 
-      pat::CompositeCandidate cand;
-      cand.setP4(ll_ptr->p4() + k_p4);
-      cand.setCharge(ll_ptr->charge() + k_ptr->charge());
+    pat::CompositeCandidate cand;
+    cand.setP4(ll_ptr->p4() );
+    cand.setCharge(ll_ptr->charge());
 
       // pv info
 
@@ -283,53 +256,46 @@ void BTo3MuBuilder::produce(edm::StreamID, edm::Event &evt, const edm::EventSetu
       // tracks info
       cand.addUserCand("mu1", mu1_ptr);
       cand.addUserCand("mu2", mu2_ptr);
-      cand.addUserCand("k", k_ptr);
+      
       cand.addUserCand("dimuon", ll_ptr);
       
       cand.addUserInt("mu1_idx", mu1_idx);
       cand.addUserInt("mu2_idx", mu2_idx);
-      cand.addUserInt("k_idx", k_idx);
-      cand.addUserInt("k_trg", isUnpairedMuon_dimuon0 );
-      cand.addUserFloat("k_d0sig",d0sig );
-
-      cand.addUserFloat("k_jpsi_dR",deltaR(ll_ptr->eta(),ll_ptr->phi(),k_ptr->eta(),k_ptr->phi()));
-
+      
+      
       cand.addUserFloat("mu1_pvjpsi_dxy", mu1_pvjpsi_dxy);
       cand.addUserFloat("mu1_pvjpsi_dz", mu1_pvjpsi_dz);
       cand.addUserFloat("mu2_pvjpsi_dxy", mu2_pvjpsi_dxy);
       cand.addUserFloat("mu2_pvjpsi_dz", mu2_pvjpsi_dz);
-      cand.addUserFloat("k_pvjpsi_dxy", k_pvjpsi_dxy);
-      cand.addUserFloat("k_pvjpsi_dz", k_pvjpsi_dz);
+      
       cand.addUserFloat("mu1_pvjpsi_dxyErr", mu1_pvjpsi_dxyErr);
       cand.addUserFloat("mu1_pvjpsi_dzErr", mu1_pvjpsi_dzErr);
       cand.addUserFloat("mu2_pvjpsi_dxyErr", mu2_pvjpsi_dxyErr);
       cand.addUserFloat("mu2_pvjpsi_dzErr", mu2_pvjpsi_dzErr);
-      cand.addUserFloat("k_pvjpsi_dxyErr", k_pvjpsi_dxyErr);
-      cand.addUserFloat("k_pvjpsi_dzErr", k_pvjpsi_dzErr);
+      
 
       cand.addUserFloat("mu1_pvfirst_dxy", mu1_pvfirst_dxy);
       cand.addUserFloat("mu1_pvfirst_dz", mu1_pvfirst_dz);
       cand.addUserFloat("mu2_pvfirst_dxy", mu2_pvfirst_dxy);
       cand.addUserFloat("mu2_pvfirst_dz", mu2_pvfirst_dz);
-      cand.addUserFloat("k_pvfirst_dxy", k_pvfirst_dxy);
-      cand.addUserFloat("k_pvfirst_dz", k_pvfirst_dz);
+      
+      
       cand.addUserFloat("mu1_pvfirst_dxyErr", mu1_pvfirst_dxyErr);
       cand.addUserFloat("mu1_pvfirst_dzErr", mu1_pvfirst_dzErr);
       cand.addUserFloat("mu2_pvfirst_dxyErr", mu2_pvfirst_dxyErr);
       cand.addUserFloat("mu2_pvfirst_dzErr", mu2_pvfirst_dzErr);
-      cand.addUserFloat("k_pvfirst_dxyErr", k_pvfirst_dxyErr);
-      cand.addUserFloat("k_pvfirst_dzErr", k_pvfirst_dzErr);
+      
+      
 
 
       if(debug) std::cout<<"cand pt "<<cand.pt()<<std::endl;
-      if(debug) std::cout<<"displ mu "<<k_ptr->pt()<<std::endl;
       if(debug) std::cout<<"displ m1 "<<mu1_ptr->pt()<<std::endl;
       if(debug) std::cout<<"displ m2 "<<mu2_ptr->pt()<<std::endl;
 
-      auto dr_info = min_max_dr({mu1_ptr, mu2_ptr, k_ptr});
+      // auto dr_info = min_max_dr({mu1_ptr, mu2_ptr, k_ptr});
 
-      cand.addUserFloat("min_dr", dr_info.first);
-      cand.addUserFloat("max_dr", dr_info.second);
+      cand.addUserFloat("min_dr", deltaR( mu1_ptr->eta(),mu1_ptr->phi(),mu2_ptr->eta(),mu2_ptr->phi()));
+      cand.addUserFloat("max_dr", -99);
       // TODO add meaningful variables
       
       if( !pre_vtx_selection_(cand) ) continue;
@@ -337,13 +303,13 @@ void BTo3MuBuilder::produce(edm::StreamID, edm::Event &evt, const edm::EventSetu
       
       //        if(debug) std::cout<<"PRIMA"<<std::endl;
       KinVtxFitter fitter(
-        {muons_ttracks->at(mu1_idx), muons_ttracks->at(mu2_idx), muons_ttracks->at(k_idx)},
-        {mu1_ptr->mass(), mu2_ptr->mass(), k_ptr->mass()},
-        {LEP_SIGMA, LEP_SIGMA, LEP_SIGMA} //some small sigma for the muon mass
+			  {muons_ttracks->at(mu1_idx), muons_ttracks->at(mu2_idx)},
+			  {mu1_ptr->mass(), mu2_ptr->mass()}, 
+        {LEP_SIGMA, LEP_SIGMA} //some small sigma for the muon mass
         );
       used_muon1_id.emplace_back(mu1_idx);
       used_muon2_id.emplace_back(mu2_idx);
-      used_trk_id.emplace_back(k_idx);
+
       if(fitter.success()) {
       
 	cand.setVertex( 
@@ -367,15 +333,11 @@ void BTo3MuBuilder::produce(edm::StreamID, edm::Event &evt, const edm::EventSetu
 	double mu2_pvb_dxyErr = mu2_ptr->bestTrack()->dxyError(pv_b.position(),pv_b.covariance());
 	double mu1_pvb_dzErr = mu1_ptr->bestTrack()->dzError();
 	double mu2_pvb_dzErr = mu2_ptr->bestTrack()->dzError();
-	double k_pvb_dxy = k_ptr->bestTrack()->dxy(pv_b.position());
-	double k_pvb_dz = k_ptr->bestTrack()->dz(pv_b.position());
-	double k_pvb_dxyErr = k_ptr->bestTrack()->dxyError(pv_b.position(),pv_b.covariance());
-	double k_pvb_dzErr = k_ptr->bestTrack()->dzError();
 
 
-	Measurement1D ip3D_pvjpsi = getIP(ll_ptr, pv_jpsi, muons_ttracks->at(k_idx));
-	Measurement1D ip3D_pvb = getIP(ll_ptr, pv_b, muons_ttracks->at(k_idx));
-	Measurement1D ip3D_pvfirst = getIP(ll_ptr, pv_first, muons_ttracks->at(k_idx));
+	// Measurement1D ip3D_pvjpsi = getIP(ll_ptr, pv_jpsi, muons_ttracks->at(k_idx));
+	// Measurement1D ip3D_pvb = getIP(ll_ptr, pv_b, muons_ttracks->at(k_idx));
+	// Measurement1D ip3D_pvfirst = getIP(ll_ptr, pv_first, muons_ttracks->at(k_idx));
 
 
 	cand.addUserInt("pvb_idx", pvbIdx);
@@ -383,24 +345,24 @@ void BTo3MuBuilder::produce(edm::StreamID, edm::Event &evt, const edm::EventSetu
 	cand.addUserFloat("mu1_pvb_dz", mu1_pvb_dz);
 	cand.addUserFloat("mu2_pvb_dxy", mu2_pvb_dxy);
 	cand.addUserFloat("mu2_pvb_dz", mu2_pvb_dz);
-	cand.addUserFloat("k_pvb_dxy", k_pvb_dxy);
-	cand.addUserFloat("k_pvb_dz", k_pvb_dz);
+	// cand.addUserFloat("k_pvb_dxy", k_pvb_dxy);
+	// cand.addUserFloat("k_pvb_dz", k_pvb_dz);
 	cand.addUserFloat("mu1_pvb_dxyErr", mu1_pvb_dxyErr);
 	cand.addUserFloat("mu1_pvb_dzErr", mu1_pvb_dzErr);
 	cand.addUserFloat("mu2_pvb_dxyErr", mu2_pvb_dxyErr);
 	cand.addUserFloat("mu2_pvb_dzErr", mu2_pvb_dzErr);
-	cand.addUserFloat("k_pvb_dxyErr", k_pvb_dxyErr);
-	cand.addUserFloat("k_pvb_dzErr", k_pvb_dzErr);
+	// cand.addUserFloat("k_pvb_dxyErr", k_pvb_dxyErr);
+	// cand.addUserFloat("k_pvb_dzErr", k_pvb_dzErr);
 
         auto lxy = l_xy(fitter, *beamspot);
         cand.addUserFloat("l_xy", lxy.value());
         cand.addUserFloat("l_xy_unc", lxy.error());
-        cand.addUserFloat("ip3D_pvjpsi", ip3D_pvjpsi.value());
-        cand.addUserFloat("ip3D_pvjpsi_e", ip3D_pvjpsi.error());
-        cand.addUserFloat("ip3D_pvb", ip3D_pvb.value());
-        cand.addUserFloat("ip3D_pvb_e", ip3D_pvb.error());
-        cand.addUserFloat("ip3D_pvfirst", ip3D_pvfirst.value());
-        cand.addUserFloat("ip3D_pvfirst_e", ip3D_pvfirst.error());
+        // cand.addUserFloat("ip3D_pvjpsi", ip3D_pvjpsi.value());
+        // cand.addUserFloat("ip3D_pvjpsi_e", ip3D_pvjpsi.error());
+        // cand.addUserFloat("ip3D_pvb", ip3D_pvb.value());
+        // cand.addUserFloat("ip3D_pvb_e", ip3D_pvb.error());
+        // cand.addUserFloat("ip3D_pvfirst", ip3D_pvfirst.value());
+        // cand.addUserFloat("ip3D_pvfirst_e", ip3D_pvfirst.error());
         cand.addUserInt("sv_OK" , fitter.success());
         cand.addUserFloat("sv_chi2", fitter.chi2());
         cand.addUserFloat("sv_ndof", fitter.dof()); // float??
@@ -431,9 +393,9 @@ void BTo3MuBuilder::produce(edm::StreamID, edm::Event &evt, const edm::EventSetu
         cand.addUserFloat("fitted_mu2_pt" , fitter.daughter_p4(1).pt()); 
         cand.addUserFloat("fitted_mu2_eta", fitter.daughter_p4(1).eta());
         cand.addUserFloat("fitted_mu2_phi", fitter.daughter_p4(1).phi());
-        cand.addUserFloat("fitted_k_pt"  , fitter.daughter_p4(2).pt()); 
-        cand.addUserFloat("fitted_k_eta" , fitter.daughter_p4(2).eta());
-        cand.addUserFloat("fitted_k_phi" , fitter.daughter_p4(2).phi());
+        // cand.addUserFloat("fitted_k_pt"  , fitter.daughter_p4(2).pt()); 
+        // cand.addUserFloat("fitted_k_eta" , fitter.daughter_p4(2).eta());
+        // cand.addUserFloat("fitted_k_phi" , fitter.daughter_p4(2).phi());
 
 	cand.addUserFloat("pvb_x", pv_b.position().x());
 	cand.addUserFloat("pvb_y", pv_b.position().y());
@@ -452,12 +414,12 @@ void BTo3MuBuilder::produce(edm::StreamID, edm::Event &evt, const edm::EventSetu
         cand.setVertex(reco::Candidate::Point(0.,0.,0.));
         cand.addUserFloat("l_xy", -99.);
         cand.addUserFloat("l_xy_unc", -99.);
-        cand.addUserFloat("ip3D_pvjpsi", -99.);
-        cand.addUserFloat("ip3D_pvjpsi_e", -99.);
-        cand.addUserFloat("ip3D_pvb", -99.);
-        cand.addUserFloat("ip3D_pvb_e", -99.);
-        cand.addUserFloat("ip3D_pvfirst", -99.);
-        cand.addUserFloat("ip3D_pvfirst_e", -99.);
+        // cand.addUserFloat("ip3D_pvjpsi", -99.);
+        // cand.addUserFloat("ip3D_pvjpsi_e", -99.);
+        // cand.addUserFloat("ip3D_pvb", -99.);
+        // cand.addUserFloat("ip3D_pvb_e", -99.);
+        // cand.addUserFloat("ip3D_pvfirst", -99.);
+        // cand.addUserFloat("ip3D_pvfirst_e", -99.);
         cand.addUserInt("sv_OK" , fitter.success());
         cand.addUserFloat("sv_chi2", -99.);
         cand.addUserFloat("sv_ndof", -99.); // float??
@@ -480,23 +442,23 @@ void BTo3MuBuilder::produce(edm::StreamID, edm::Event &evt, const edm::EventSetu
         cand.addUserFloat("fitted_mu2_pt" , -99.); 
         cand.addUserFloat("fitted_mu2_eta", -99.);
         cand.addUserFloat("fitted_mu2_phi", -99.);
-        cand.addUserFloat("fitted_k_pt"  , -99.); 
-        cand.addUserFloat("fitted_k_eta" , -99.);
-        cand.addUserFloat("fitted_k_phi" , -99.);
+        // cand.addUserFloat("fitted_k_pt"  , -99.); 
+        // cand.addUserFloat("fitted_k_eta" , -99.);
+        // cand.addUserFloat("fitted_k_phi" , -99.);
 
 	cand.addUserInt("pvb_idx", -99.);
 	cand.addUserFloat("mu1_pvb_dxy", -99.);
 	cand.addUserFloat("mu1_pvb_dz", -99.);
 	cand.addUserFloat("mu2_pvb_dxy", -99.);
 	cand.addUserFloat("mu2_pvb_dz", -99.);
-	cand.addUserFloat("k_pvb_dxy", -99.);
-	cand.addUserFloat("k_pvb_dz", -99.);
+	// cand.addUserFloat("k_pvb_dxy", -99.);
+	// cand.addUserFloat("k_pvb_dz", -99.);
 	cand.addUserFloat("mu1_pvb_dxyErr", -99.);
 	cand.addUserFloat("mu1_pvb_dzErr", -99.);
 	cand.addUserFloat("mu2_pvb_dxyErr", -99.);
 	cand.addUserFloat("mu2_pvb_dzErr", -99.);
-	cand.addUserFloat("k_pvb_dxyErr", -99.);
-	cand.addUserFloat("k_pvb_dzErr", -99.);
+	// cand.addUserFloat("k_pvb_dxyErr", -99.);
+	// cand.addUserFloat("k_pvb_dzErr", -99.);
 	cand.addUserFloat("pvb_x", -99.);
 	cand.addUserFloat("pvb_y", -99.);
 	cand.addUserFloat("pvb_z", -99.);
@@ -561,7 +523,7 @@ void BTo3MuBuilder::produce(edm::StreamID, edm::Event &evt, const edm::EventSetu
       P_b.SetPtEtaPhiM(B_pt,cand.eta(),cand.phi(),Bc_MASS);
       
       TLorentzVector P_k;
-      P_k.SetPtEtaPhiM(k_ptr->pt(),k_ptr->eta(),k_ptr->phi(),k_ptr->mass());
+      P_k.SetPtEtaPhiM(0,0,0,0);//k_ptr->pt(),k_ptr->eta(),k_ptr->phi(),k_ptr->mass());
       
       TLorentzVector P_mu1;
       P_mu1.SetPtEtaPhiM(mu1_ptr->pt(),mu1_ptr->eta(),mu1_ptr->phi(),mu1_ptr->mass());
@@ -573,7 +535,7 @@ void BTo3MuBuilder::produce(edm::StreamID, edm::Event &evt, const edm::EventSetu
       float Q_2=(P_b-P_mu1-P_mu2)*(P_b-P_mu1-P_mu2);
       float pt_miss=(P_b.Pt()-P_k.Pt()-P_mu1.Pt()-P_mu2.Pt());
       float pt_miss_vec=((P_b-P_k-P_mu1-P_mu2).Pt());
-      float pt_var=((P_mu1+P_mu2).Pt()-P_k.Pt());
+      float pt_var=((P_mu1+P_mu2).Pt());
       float DR=deltaR(P_mu1.Eta(),P_mu1.Phi(),P_mu2.Eta(),P_mu2.Phi());
       //float deta = P_mu1.Eta() - P_mu2.Eta();
       //float dphi = P_mu1.Phi() - P_mu2.Phi();
@@ -625,19 +587,19 @@ void BTo3MuBuilder::produce(edm::StreamID, edm::Event &evt, const edm::EventSetu
 	// only consider tracks originating close to the three bodies
 	if ( !mu1_ptr->bestTrack() || fabs(trk.dz() - mu1_ptr->bestTrack()->dz()) > 0.4 ) continue;
 	if ( !mu2_ptr->bestTrack() || fabs(trk.dz() - mu2_ptr->bestTrack()->dz()) > 0.4 ) continue;
-	if ( !k_ptr ->bestTrack() || fabs(trk.dz() - k_ptr ->bestTrack()->dz()) > 0.4 ) continue;
+	// if ( !k_ptr ->bestTrack() || fabs(trk.dz() - k_ptr ->bestTrack()->dz()) > 0.4 ) continue;
 
-        if (k_ptr->userCand("cand") ==  edm::Ptr<reco::Candidate> ( iso_tracks, iTrk ) ) {
+	// if (k_ptr->userCand("cand") ==  edm::Ptr<reco::Candidate> ( iso_tracks, iTrk ) ) {
           
-          if(debug) std::cout<<"old"<<std::endl;
-          continue;
-        }
+        //   if(debug) std::cout<<"old"<<std::endl;
+        //   continue;
+        // }
         
-        if(track_to_muon_match(k_ptr, iso_tracks.id(), iTrk)) 
-        {
-          // if(debug) std::cout<<"new"<<std::endl;
-          continue;
-        }
+        // if(track_to_muon_match(k_ptr, iso_tracks.id(), iTrk)) 
+        // {
+        //   // if(debug) std::cout<<"new"<<std::endl;
+        //   continue;
+        //}
         // check if the track is one of the two muons
         if (track_to_muon_match(mu1_ptr, iso_tracks.id(), iTrk) || 
             track_to_muon_match(mu2_ptr, iso_tracks.id(), iTrk) ) continue;
@@ -645,7 +607,7 @@ void BTo3MuBuilder::produce(edm::StreamID, edm::Event &evt, const edm::EventSetu
         // add to final particle iso if dR < cone
         float dr_to_mu1 = deltaR(cand.userFloat("fitted_mu1_eta"), cand.userFloat("fitted_mu1_phi"), trk.eta(), trk.phi());
         float dr_to_mu2 = deltaR(cand.userFloat("fitted_mu2_eta"), cand.userFloat("fitted_mu2_phi"), trk.eta(), trk.phi());
-        float dr_to_k  = deltaR(cand.userFloat("fitted_k_eta") , cand.userFloat("fitted_k_phi") , trk.eta(), trk.phi());
+        //float dr_to_k  = deltaR(cand.userFloat("fitted_k_eta") , cand.userFloat("fitted_k_phi") , trk.eta(), trk.phi());
         float dr_to_b  = deltaR(cand.userFloat("fitted_eta")   , cand.userFloat("fitted_phi") , trk.eta(), trk.phi());
         
 	if (dr_to_mu1 < 0.4 && dr_to_mu1>0.01){
@@ -656,38 +618,39 @@ void BTo3MuBuilder::produce(edm::StreamID, edm::Event &evt, const edm::EventSetu
 	  mu2_iso04 += trk.pt();
 	  if (dr_to_mu2 < 0.3)  mu2_iso03 += trk.pt();
 	}
-	if (dr_to_k < 0.4 && dr_to_k>0.01){
-	  k_iso04 += trk.pt();
-	  if (dr_to_k < 0.3) k_iso03 += trk.pt();
-	}
+	// if (dr_to_k < 0.4 && dr_to_k>0.01){
+	//   k_iso04 += trk.pt();
+	//   if (dr_to_k < 0.3) k_iso03 += trk.pt();
+	// }
 	if (dr_to_b < 0.4){
 	  b_iso04 += trk.pt();
 	  if (dr_to_b < 0.3) b_iso03 += trk.pt();
-	}      }
+	}      
+      }
 
       cand.addUserFloat("mu1_iso03", mu1_iso03);
       cand.addUserFloat("mu1_iso04", mu1_iso04);
       cand.addUserFloat("mu2_iso03", mu2_iso03);
       cand.addUserFloat("mu2_iso04", mu2_iso04);
-      cand.addUserFloat("k_iso03" , k_iso03 );
-      cand.addUserFloat("k_iso04" , k_iso04 );
+      // cand.addUserFloat("k_iso03" , k_iso03 );
+      // cand.addUserFloat("k_iso04" , k_iso04 );
       cand.addUserFloat("b_iso03" , b_iso03 );
       cand.addUserFloat("b_iso04" , b_iso04 );
 
       //salvo il candidato
       ret_val->push_back(cand);
-    }//for(size_t ll_idx = 0; ll_idx < dimuons->size(); ++ll_idx) 
-  }//for(size_t k_idx = 0; k_idx < muons->size(); ++k_idx)
-  
+	//for(size_t ll_idx = 0; ll_idx < dimuons->size(); ++ll_idx) 
+    }//for(size_t k_idx = 0; k_idx < muons->size(); ++k_idx)
+	
   for (auto & cand: *ret_val){
-    cand.addUserInt("n_k_used", std::count(used_trk_id.begin(),used_trk_id.end(),cand.userInt("k_idx")));
+    // cand.addUserInt("n_k_used", std::count(used_trk_id.begin(),used_trk_id.end(),cand.userInt("k_idx")));
     cand.addUserInt("n_mu1_used", std::count(used_muon1_id.begin(),used_muon1_id.end(),cand.userInt("mu1_idx"))+std::count(used_muon2_id.begin(),used_muon2_id.end(),cand.userInt("mu1_idx")));
     cand.addUserInt("n_mu2_used", std::count(used_muon1_id.begin(),used_muon1_id.end(),cand.userInt("mu2_idx"))+std::count(used_muon2_id.begin(),used_muon2_id.end(),cand.userInt("mu2_idx")));
   }
   evt.put(std::move(ret_val));
 }//produce  
 
-Measurement1D BTo3MuBuilder::getIP(edm::Ptr<pat::CompositeCandidate> ll_ptr, reco::Vertex pv, reco::TransientTrack transientTrackMu) const
+Measurement1D BTo2MuBuilder::getIP(edm::Ptr<pat::CompositeCandidate> ll_ptr, reco::Vertex pv, reco::TransientTrack transientTrackMu) const
 {
   // computing 3d impact parameter
   //GlobalVector jpsiDirection(fitter.fitted_p4().x(), fitter.fitted_p4().y(), fitter.fitted_p4().z());
@@ -725,7 +688,7 @@ Measurement1D BTo3MuBuilder::getIP(edm::Ptr<pat::CompositeCandidate> ll_ptr, rec
   return ip3D;
 }
 
-int BTo3MuBuilder::getPVIdx(const reco::VertexCollection* vertices,const reco::TransientTrack& dimuonTT) const
+int BTo2MuBuilder::getPVIdx(const reco::VertexCollection* vertices,const reco::TransientTrack& dimuonTT) const
 {
     double dzMin = 1000000.;
     reco::Vertex bestVertex;
@@ -747,15 +710,5 @@ int BTo3MuBuilder::getPVIdx(const reco::VertexCollection* vertices,const reco::T
     if(debug) std::cout<< "Best vertex id: " << pvIdx << std::endl;
   return pvIdx;
 }
-FreeTrajectoryState BTo3MuBuilder::initialFreeState(const reco::Track& tk, const MagneticField *field) const {
-  Basic3DVector<float> pos(tk.vertex());
-  GlobalPoint gpos(pos);
-  Basic3DVector<float> mom(tk.momentum());
-  GlobalVector gmom(mom);
-  GlobalTrajectoryParameters par(gpos, gmom, tk.charge(), field);
-  CurvilinearTrajectoryError err(tk.covariance());
-  return FreeTrajectoryState(par, err);
-}
-
 #include "FWCore/Framework/interface/MakerMacros.h"
-DEFINE_FWK_MODULE(BTo3MuBuilder);
+DEFINE_FWK_MODULE(BTo2MuBuilder);

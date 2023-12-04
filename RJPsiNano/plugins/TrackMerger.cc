@@ -147,27 +147,51 @@ void TrackMerger::produce(edm::StreamID, edm::Event &evt, edm::EventSetup const 
    unsigned int index = names.triggerIndex("HLT_DoubleMu4_JpsiTrk_Displaced_v14");
    unsigned int index2 = names.triggerIndex("HLT_DoubleMu4_JpsiTrk_Displaced_v15");
    bool pass_hlt = false;
+   bool pass_jpsiTrk1_path = false;        
+   for (int v=0;v<17;v++){
+     std::string name = "HLT_DoubleMu4_JpsiTrk_Displaced_v"+std::to_string(v);
+     unsigned int index = names.triggerIndex(name);
+     if( index < triggerBits->size() ) {
+       if( triggerBits->accept( index ) ) pass_jpsiTrk1_path = true;
+     }
+   }
+
    std::vector<pat::TriggerObjectStandAlone> pass_trk;
-   if(index!=triggerBits->size() || index2!=triggerBits->size()){
-     //    std::cout<<"Non ha HLT path giusto"<<std::endl;
-     if(index!=triggerBits->size()){
-       pass_hlt=triggerBits->accept(index);
-     }
-     else if (index2!=triggerBits->size()){
-       pass_hlt=triggerBits->accept(index2);
-     }
-     if(pass_hlt){         
-       for (pat::TriggerObjectStandAlone obj : *triggerObjects){
-	 obj.unpackFilterLabels(evt, *triggerBits);
-	 obj.unpackPathNames(names);
+
+
+   // if(index!=triggerBits->size() || index2!=triggerBits->size()){
+   //   //    std::cout<<"Non ha HLT path giusto"<<std::endl;
+   //   if(index!=triggerBits->size()){
+   //     pass_hlt=triggerBits->accept(index);
+   //   }
+   //   else if (index2!=triggerBits->size()){
+   //     pass_hlt=triggerBits->accept(index2);
+   //   }
+   //   if(pass_hlt){         
+   //     for (pat::TriggerObjectStandAlone obj : *triggerObjects){
+   // 	 obj.unpackFilterLabels(evt, *triggerBits);
+   // 	 obj.unpackPathNames(names);
 	 
-	 if(obj.hasFilterLabel("hltJpsiTkVertexFilter") && !(obj.hasFilterLabel("hltDisplacedmumuFilterDoubleMu4Jpsi"))) {
-	   pass_trk.push_back(obj);
-	 }
+   // 	 if(obj.hasFilterLabel("hltJpsiTkVertexFilter") && !(obj.hasFilterLabel("hltDisplacedmumuFilterDoubleMu4Jpsi"))) {
+   // 	   pass_trk.push_back(obj);
+   // 	 }
 	 
+   //     }
+   //   }
+   // }
+
+   if(pass_jpsiTrk1_path){
+     for (pat::TriggerObjectStandAlone obj : *triggerObjects){
+       obj.unpackFilterLabels(evt, *triggerBits);
+       obj.unpackPathNames(names);
+
+       if(obj.hasFilterLabel("hltJpsiTkVertexFilter") && !(obj.hasFilterLabel("hltDisplacedmumuFilterDoubleMu4Jpsi"))) {
+	 pass_trk.push_back(obj);
        }
      }
    }
+
+
    if (debug) std::cout<<"trks that pass the trigger : "<<pass_trk.size()<<std::endl;
    std::vector<int> trackIsTrigger(totalTracks, 0);
    

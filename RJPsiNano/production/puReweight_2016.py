@@ -14,11 +14,12 @@ start_time = time.time()
 print("Starting")
 #data pu histo 
 #data_file = 'PileupHistogram-goldenJSON-13tev-2018-100bins_withVar.root'
-data_file = 'PileupHistogram-UL2017-100bins_withVar.root'
+#data_file = 'PileupHistogram-UL2017-100bins_withVar.root'
+data_file = "pileup_2016GH.root"
 input_data = ROOT.TFile.Open(data_file, 'read')
 data_histo = input_data.Get("pileup")
-data_histo_up = input_data.Get("pileup_plus")
-data_histo_down = input_data.Get("pileup_minus")
+data_histo_up = input_data.Get("pileup2")
+data_histo_down = input_data.Get("pileup3")
 print("Data histo loaded")
 
 #mc nanoAOD input

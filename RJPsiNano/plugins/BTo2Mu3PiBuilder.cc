@@ -19,6 +19,21 @@
 #include "DataFormats/GeometryVector/interface/GlobalVector.h"
 #include "RecoVertex/VertexTools/interface/VertexDistance3D.h"
 
+#include "TrackingTools/Records/interface/TransientTrackRecord.h"
+#include "TrackingTools/GeomPropagators/interface/AnalyticalImpactPointExtrapolator.h"
+#include "TrackingTools/PatternTools/interface/TransverseImpactPointExtrapolator.h"
+#include "TrackingTools/PatternTools/interface/ClosestApproachInRPhi.h"
+#include "MagneticField/Engine/interface/MagneticField.h"
+#include "MagneticField/Records/interface/IdealMagneticFieldRecord.h"
+#include "TrackingTools/PatternTools/interface/TSCBLBuilderNoMaterial.h"
+
+#include "RecoVertex/KinematicFitPrimitives/interface/RefCountedKinematicTree.h"
+#include "RecoVertex/KinematicFitPrimitives/interface/KinematicParticleFactoryFromTransientTrack.h" 
+#include "RecoVertex/KinematicFit/interface/KinematicParticleFitter.h"
+#include "RecoVertex/KinematicFit/interface/KinematicParticleVertexFitter.h"
+#include "RecoVertex/KinematicFit/interface/KinematicConstrainedVertexFitter.h"
+#include "RecoVertex/KinematicFit/interface/MassKinematicConstraint.h"
+#include "RecoVertex/KinematicFit/interface/MultiTrackMassKinematicConstraint.h"
 #include <vector>
 #include <memory>
 #include <map>
@@ -40,6 +55,7 @@ class BTo2Mu3PiBuilder : public edm::global::EDProducer<> {
 public:
   typedef std::vector<reco::TransientTrack> TransientTrackCollection;
   typedef std::vector<reco::GenParticle> GenParticleCollection;
+  typedef std::vector<pat::Muon> MuonCollection;
 
   explicit BTo2Mu3PiBuilder(const edm::ParameterSet &cfg)
       : particle_selection_{cfg.getParameter<std::string>("particleSelection")},
@@ -55,6 +71,7 @@ public:
         isotracksToken_(consumes<pat::PackedCandidateCollection>(cfg.getParameter<edm::InputTag>("tracks"))),
         isolostTracksToken_(consumes<pat::PackedCandidateCollection>(cfg.getParameter<edm::InputTag>("lostTracks"))),
         isotrk_selection_{cfg.getParameter<std::string>("isoTracksSelection")},
+        src_{consumes<MuonCollection>( cfg.getParameter<edm::InputTag>("src") )},
         beamspot_{consumes<reco::BeamSpot>(cfg.getParameter<edm::InputTag>("beamSpot"))} {
     produces<pat::CompositeCandidateCollection>();
   }
@@ -63,10 +80,13 @@ public:
 
   void produce(edm::StreamID, edm::Event &, const edm::EventSetup &) const override;
   int getPVIdx(const reco::VertexCollection *, const reco::TransientTrack &) const;
+
   Measurement1D getIP(edm::Ptr<pat::CompositeCandidate> ll_ptr,
                       reco::Vertex pv,
                       reco::TransientTrack transientTrackMu) const;
-
+  FreeTrajectoryState initialFreeState(const reco::Track& tk, const MagneticField *field) const;
+  std::tuple<Bool_t, RefCountedKinematicParticle, RefCountedKinematicVertex, RefCountedKinematicTree> KinematicFit(std::vector<RefCountedKinematicParticle> particles, Float_t constrain_mass, Float_t constrain_error) const;
+  bool basicTrackcut(reco::Track) const;
   static void fillDescriptions(edm::ConfigurationDescriptions &descriptions) {}
 
 private:
@@ -85,10 +105,11 @@ private:
 
   const StringCutObjectSelector<pat::PackedCandidate> isotrk_selection_;
 
+  const edm::EDGetTokenT<MuonCollection> src_; 
   const edm::EDGetTokenT<reco::BeamSpot> beamspot_;
 };
 
-void BTo2Mu3PiBuilder::produce(edm::StreamID, edm::Event &evt, edm::EventSetup const &) const {
+void BTo2Mu3PiBuilder::produce(edm::StreamID, edm::Event &evt,const edm::EventSetup& iSetup) const {
   //input
   edm::Handle<pat::CompositeCandidateCollection> dimuons;
   evt.getByToken(dimuons_, dimuons);
@@ -114,6 +135,9 @@ void BTo2Mu3PiBuilder::produce(edm::StreamID, edm::Event &evt, edm::EventSetup c
   edm::Handle<pat::PackedCandidateCollection> iso_lostTracks;
   evt.getByToken(isolostTracksToken_, iso_lostTracks);
 
+  edm::Handle<MuonCollection> muons;  
+  evt.getByToken(src_, muons); 
+ 
   //////
   unsigned int nTracks = iso_tracks->size();
   unsigned int totalTracks = nTracks + iso_lostTracks->size();
@@ -133,8 +157,12 @@ void BTo2Mu3PiBuilder::produce(edm::StreamID, edm::Event &evt, edm::EventSetup c
     edm::Ptr<pat::CompositeCandidate> ll_ptr(dimuons, ll_idx);
     edm::Ptr<reco::Candidate> mu1_ptr = ll_ptr->userCand("mu1");
     edm::Ptr<reco::Candidate> mu2_ptr = ll_ptr->userCand("mu2");
+   
+
     size_t mu1_idx = abs(ll_ptr->userInt("mu1_idx"));
     size_t mu2_idx = abs(ll_ptr->userInt("mu2_idx"));
+    edm::Ptr<pat::Muon> muon1_ptr(muons, mu1_idx); 
+    edm::Ptr<pat::Muon> muon2_ptr(muons, mu2_idx);
 
     int pvIdx = ll_ptr->userInt("pvIdx");
     reco::Vertex pv_jpsi = vertices->at(pvIdx);
@@ -153,16 +181,18 @@ void BTo2Mu3PiBuilder::produce(edm::StreamID, edm::Event &evt, edm::EventSetup c
 
     size_t isDimuon_jpsiTrkTrg = abs(ll_ptr->userInt("muonpair_fromjpsitrk"));
     size_t isDimuon_doubleMuTrg = abs(ll_ptr->userInt("muonpair_fromdoubleMu"));
+
+    size_t isDimuon_fromMu8Trg = abs(ll_ptr->userInt("muonpair_fromMu8_Trg")); //set to true if one of the 2 muons fires the Mu8 HLT 
     //size_t isDimuon_jpsiTrkTrg = abs(ll_ptr->userInt("isJpsiTrkTrg"));
     //size_t isDimuon_dimuon0Trg = abs(ll_ptr->userInt("isDimuon0Trg"));
 
   
-    if (!(isDimuon_jpsiTrkTrg || isDimuon_dimuon0Trg || isDimuon_dimuon0_jpsi_Trg ||
-          isDimuon_dimuon43_jpsi_displaced_Trg
-	  //|| isDimuon_doubleMuTrg  OLD Ref
-	  ))
-      continue;
-   
+    //if (!(isDimuon_jpsiTrkTrg || isDimuon_dimuon0Trg || isDimuon_dimuon0_jpsi_Trg ||
+    //	  isDimuon_dimuon43_jpsi_displaced_Trg
+    //	  || isDimuon_doubleMuTrg // OLD Ref
+    //	  ))
+      //continue;
+    
     //      std::cout <<" Trig Passed "<< " isDimuon_jpsiTrkTrg "<< isDimuon_jpsiTrkTrg << " isDimuon_doubleMuTrg " <<isDimuon_doubleMuTrg << " isDimuon_dimuon0Trg "<< isDimuon_dimuon0Trg << " isDimuon_dimuon0_jpsi_Trg "<< isDimuon_dimuon0_jpsi_Trg <<
     //	" isDimuon_dimuon43_jpsi_displaced_Trg "<< isDimuon_dimuon43_jpsi_displaced_Trg  << std::endl;
     // first loop on pion- this one with trigger matching
@@ -170,10 +200,11 @@ void BTo2Mu3PiBuilder::produce(edm::StreamID, edm::Event &evt, edm::EventSetup c
       std::cout << "paerticles size " << particles->size() << std::endl;
     for (size_t pi1_idx = 0; pi1_idx < particles->size(); ++pi1_idx) {
       edm::Ptr<pat::CompositeCandidate> pi1_ptr(particles, pi1_idx);
-      if (!particle_selection_(*pi1_ptr)){
+      if (!(particle_selection_(*pi1_ptr) && basicTrackcut(particles_ttracks->at(pi1_idx).track())) ){
 	if (debug)  std::cout << "not passing particle selection p1" << std::endl;               
         continue;
       }
+
       //dz requirement
       //if ( fabs(particles_ttracks->at(pi1_idx).track().dz() - mu1_ptr->bestTrack()->dz()) > 0.4 || fabs(particles_ttracks->at(pi1_idx).track().dz() - mu2_ptr->bestTrack()->dz()) > 0.4) continue;
       //std::cout<<"pion1 pt"<<particles_ttracks->at(pi1_idx).track().pt()<<std::endl;
@@ -198,12 +229,12 @@ void BTo2Mu3PiBuilder::produce(edm::StreamID, edm::Event &evt, edm::EventSetup c
       if (deltaR(muons_ttracks->at(mu2_idx).track().eta(),
                  muons_ttracks->at(mu2_idx).track().phi(),
                  particles_ttracks->at(pi1_idx).track().eta(),
-                 particles_ttracks->at(pi1_idx).track().phi()) < 0.05)
+                 particles_ttracks->at(pi1_idx).track().phi()) < 0.005)
         continue;
       if (deltaR(muons_ttracks->at(mu1_idx).track().eta(),
                  muons_ttracks->at(mu1_idx).track().phi(),
                  particles_ttracks->at(pi1_idx).track().eta(),
-                 particles_ttracks->at(pi1_idx).track().phi()) < 0.05)
+                 particles_ttracks->at(pi1_idx).track().phi()) < 0.005)
         continue;
 
       if (debug)
@@ -223,13 +254,14 @@ void BTo2Mu3PiBuilder::produce(edm::StreamID, edm::Event &evt, edm::EventSetup c
         if (pi2_idx == pi1_idx)
           continue;
         edm::Ptr<pat::CompositeCandidate> pi2_ptr(particles, pi2_idx);
-        if (!particle_selection_(*pi2_ptr))
+        if (!(particle_selection_(*pi2_ptr)&& basicTrackcut(particles_ttracks->at(pi2_idx).track())))
           continue;
         // dz between track and leptons
         //	if ( fabs(particles_ttracks->at(pi2_idx).track().dz() - mu1_ptr->bestTrack()->dz()) > 0.4 ||  fabs(particles_ttracks->at(pi2_idx).track().dz() - mu2_ptr->bestTrack()->dz()) > 0.4) continue;
         if (fabs(particles_ttracks->at(pi2_idx).track().dz(pv_jpsi.position())) > 0.12)
           continue;
-        //DR between tracks and leptons
+       
+	//DR between tracks and leptons
 
         if (deltaR(ll_ptr->p4().eta(),
                    ll_ptr->p4().phi(),
@@ -239,15 +271,17 @@ void BTo2Mu3PiBuilder::produce(edm::StreamID, edm::Event &evt, edm::EventSetup c
         if (deltaR(muons_ttracks->at(mu2_idx).track().eta(),
                    muons_ttracks->at(mu2_idx).track().phi(),
                    particles_ttracks->at(pi2_idx).track().eta(),
-                   particles_ttracks->at(pi2_idx).track().phi()) < 0.05)
+                   particles_ttracks->at(pi2_idx).track().phi()) < 0.005)
           continue;
         if (deltaR(muons_ttracks->at(mu1_idx).track().eta(),
                    muons_ttracks->at(mu1_idx).track().phi(),
                    particles_ttracks->at(pi2_idx).track().eta(),
-                   particles_ttracks->at(pi2_idx).track().phi()) < 0.05)
+                   particles_ttracks->at(pi2_idx).track().phi()) < 0.005)
           continue;
         if (debug)
           std::cout << " pi2_ptr->pt() " << pi2_ptr->pt() << " idx " << pi2_idx << std::endl;
+
+ 
 
         math::PtEtaPhiMLorentzVector pi2_p4(pi2_ptr->pt(), pi2_ptr->eta(), pi2_ptr->phi(), PI_MASS);
         // Use UserCands as they should not use memory but keep the Ptr itself
@@ -258,7 +292,7 @@ void BTo2Mu3PiBuilder::produce(edm::StreamID, edm::Event &evt, edm::EventSetup c
           if (pi3_idx == pi1_idx or pi3_idx == pi2_idx)
             continue;
           edm::Ptr<pat::CompositeCandidate> pi3_ptr(particles, pi3_idx);
-          if (!particle_selection_(*pi3_ptr))
+          if (!(particle_selection_(*pi3_ptr)&& basicTrackcut(particles_ttracks->at(pi1_idx).track())))
             continue;
           //dz requirement
           //  if ( fabs(particles_ttracks->at(pi3_idx).track().dz() - mu1_ptr->bestTrack()->dz()) > 0.4 ||  fabs(particles_ttracks->at(pi3_idx).track().dz() - mu2_ptr->bestTrack()->dz()) > 0.4) continue;
@@ -268,12 +302,12 @@ void BTo2Mu3PiBuilder::produce(edm::StreamID, edm::Event &evt, edm::EventSetup c
           if (deltaR(muons_ttracks->at(mu2_idx).track().eta(),
                      muons_ttracks->at(mu2_idx).track().phi(),
                      particles_ttracks->at(pi3_idx).track().eta(),
-                     particles_ttracks->at(pi3_idx).track().phi()) < 0.05)
+                     particles_ttracks->at(pi3_idx).track().phi()) < 0.005)
             continue;
           if (deltaR(muons_ttracks->at(mu1_idx).track().eta(),
                      muons_ttracks->at(mu1_idx).track().phi(),
                      particles_ttracks->at(pi3_idx).track().eta(),
-                     particles_ttracks->at(pi3_idx).track().phi()) < 0.05)
+                     particles_ttracks->at(pi3_idx).track().phi()) < 0.005)
             continue;
           if (deltaR(ll_ptr->p4().eta(),
                      ll_ptr->p4().phi(),
@@ -325,6 +359,10 @@ void BTo2Mu3PiBuilder::produce(edm::StreamID, edm::Event &evt, edm::EventSetup c
           if (debug)
             std::cout << "displ m2 " << mu2_ptr->pt() << std::endl;
 
+
+	  cand.addUserFloat("pi1_pt",pi1_ptr->pt());
+	  cand.addUserFloat("pi2_pt",pi2_ptr->pt());
+	  cand.addUserFloat("pi3_pt",pi3_ptr->pt());
           // pv info
 
           cand.addUserInt("pvjpsi_idx", pvIdx);
@@ -349,6 +387,7 @@ void BTo2Mu3PiBuilder::produce(edm::StreamID, edm::Event &evt, edm::EventSetup c
           cand.addUserInt("pi2_trg", pi2_ptr->userInt("isTriggering"));
           cand.addUserInt("pi3_trg", pi3_ptr->userInt("isTriggering"));
 
+
           cand.addUserFloat("mu1_pvjpsi_dxy", mu1_pvjpsi_dxy);
           cand.addUserFloat("mu1_pvjpsi_dz", mu1_pvjpsi_dz);
           cand.addUserFloat("mu2_pvjpsi_dxy", mu2_pvjpsi_dxy);
@@ -371,6 +410,113 @@ void BTo2Mu3PiBuilder::produce(edm::StreamID, edm::Event &evt, edm::EventSetup c
           cand.addUserFloat("pi3_dxyErr", pi3_dxyErr);
           cand.addUserFloat("pi3_dzErr", pi3_dzErr);
 
+	  // d0sig for candidate pions  
+	  const MagneticField                 *fMagneticField;
+	  edm::ESHandle<MagneticField> fieldHandle;
+	  iSetup.get<IdealMagneticFieldRecord>().get(fieldHandle);
+	  fMagneticField = fieldHandle.product();
+
+	  AnalyticalImpactPointExtrapolator extrapolator(fMagneticField);
+	  TransverseImpactPointExtrapolator extrapolatort(fMagneticField);
+	  TSCBLBuilderNoMaterial blsBuilder;
+
+	  FreeTrajectoryState InitialFTS = BTo2Mu3PiBuilder::initialFreeState(particles_ttracks->at(pi1_idx).track(), fMagneticField);
+	  TrajectoryStateClosestToBeamLine tscb(blsBuilder(InitialFTS, *beamspot));
+	  float d0sig = tscb.transverseImpactParameter().significance();
+	  cand.addUserFloat("pi1_d0sig", d0sig);     
+
+	  FreeTrajectoryState InitialFTS_2 = BTo2Mu3PiBuilder::initialFreeState(particles_ttracks->at(pi2_idx).track(),  fMagneticField);   
+	  TrajectoryStateClosestToBeamLine tscb_2(blsBuilder(InitialFTS_2, *beamspot));  
+	  float d0sig_2 = tscb_2.transverseImpactParameter().significance();    
+	  cand.addUserFloat("pi2_d0sig", d0sig_2);   
+
+	  FreeTrajectoryState InitialFTS_3 = BTo2Mu3PiBuilder::initialFreeState(particles_ttracks->at(pi3_idx).track(),  fMagneticField);   
+	  TrajectoryStateClosestToBeamLine tscb_3(blsBuilder(InitialFTS_3, *beamspot));   
+	  float d0sig_3 = tscb_3.transverseImpactParameter().significance(); 
+	  cand.addUserFloat("pi3_d0sig", d0sig_3);      
+
+	  //Calulating the vertex mumu trk
+
+	  float chi_Y=0,ndf_Y=0, muon_mass_Y = 0.1056583, muon_sigma_Y = 0.0000001, pion_mass_Y = 0.139571,pion_sigma_Y = 0.000016;
+	  std::vector<RefCountedKinematicParticle> mumuTrkParticles;
+	  edm::ESHandle<TransientTrackBuilder> builder;
+	  const reco::TrackRef track1_muon = muon1_ptr->muonBestTrack();
+	  const reco::TrackRef track2_muon = muon2_ptr->muonBestTrack();
+	  //	  reco::TransientTrack tt1_muon = (*builder).build(track1_muon);
+	  //reco::TransientTrack tt2_muon = (*builder).build(track2_muon);
+	  
+	  reco::TransientTrack tt1_muon = muons_ttracks->at(mu1_idx);
+	  reco::TransientTrack tt2_muon = muons_ttracks->at(mu2_idx);
+	  //const reco::TrackRef track_pi=particles_ttracks->at(pi1_idx).pseudoTrack();
+	  reco::TransientTrack tt_pi =particles_ttracks->at(pi1_idx);
+
+	  
+	  KinematicParticleFactoryFromTransientTrack pFactory;
+
+	  mumuTrkParticles.push_back(pFactory.particle(tt1_muon, muon_mass_Y, chi_Y, ndf_Y, muon_sigma_Y));
+	  mumuTrkParticles.push_back(pFactory.particle(tt2_muon, muon_mass_Y, chi_Y, ndf_Y, muon_sigma_Y));
+	  mumuTrkParticles.push_back(pFactory.particle(tt_pi, pion_mass_Y, chi_Y, ndf_Y, pion_sigma_Y));
+
+	  RefCountedKinematicParticle mumuTrk_part;
+	  RefCountedKinematicVertex mumuTrk_vertex;
+	  RefCountedKinematicTree mumuTrkTree;
+	  Bool_t mumuTrkfit_flag=false;
+	  std::tie(mumuTrkfit_flag, mumuTrk_part, mumuTrk_vertex, mumuTrkTree) = BTo2Mu3PiBuilder::KinematicFit(mumuTrkParticles, -1, -1);
+    
+	  float mumuTrk_chi2 = -1;
+	  float mumuTrk_ndof = -1;
+	  float mumuTrk_vprob = -1;
+
+	  if(mumuTrkfit_flag){
+	    mumuTrk_chi2 = mumuTrk_vertex->chiSquared();
+	    mumuTrk_ndof = mumuTrk_vertex->degreesOfFreedom();
+	    mumuTrk_vprob = TMath::Prob(mumuTrk_vertex->chiSquared(), mumuTrk_vertex->degreesOfFreedom());
+	  }
+
+	  cand.addUserFloat("mumuTrk_pi1_chi2",  mumuTrk_chi2 );   
+	  cand.addUserFloat("mumuTrk_pi1_ndof",  mumuTrk_ndof ); 
+	  cand.addUserFloat("mumuTrk_pi1_vprob",  mumuTrk_vprob ); 
+	  //Recomputing for other pions 
+	  mumuTrk_chi2 = -1;
+          mumuTrk_ndof = -1;
+          mumuTrk_vprob = -1;
+
+	  mumuTrkParticles.pop_back();
+	  reco::TransientTrack tt_pi2 =particles_ttracks->at(pi2_idx);
+	  mumuTrkParticles.push_back(pFactory.particle(tt_pi2, pion_mass_Y, chi_Y, ndf_Y, pion_sigma_Y));
+	  mumuTrkfit_flag=false;
+	  std::tie(mumuTrkfit_flag, mumuTrk_part, mumuTrk_vertex, mumuTrkTree) = BTo2Mu3PiBuilder::KinematicFit(mumuTrkParticles, -1, -1);
+	  if(mumuTrkfit_flag){
+            mumuTrk_chi2 = mumuTrk_vertex->chiSquared();
+            mumuTrk_ndof = mumuTrk_vertex->degreesOfFreedom();
+            mumuTrk_vprob = TMath::Prob(mumuTrk_vertex->chiSquared(), mumuTrk_vertex->degreesOfFreedom());
+          }
+
+          cand.addUserFloat("mumuTrk_pi2_chi2",  mumuTrk_chi2 );
+          cand.addUserFloat("mumuTrk_pi2_ndof",  mumuTrk_ndof );
+          cand.addUserFloat("mumuTrk_pi2_vprob",  mumuTrk_vprob );
+	  //FOr last pion 
+	  mumuTrk_chi2 = -1;
+          mumuTrk_ndof = -1;
+          mumuTrk_vprob = -1;
+
+          mumuTrkParticles.pop_back();
+	  reco::TransientTrack tt_pi3 =particles_ttracks->at(pi3_idx);
+          mumuTrkParticles.push_back(pFactory.particle(tt_pi3, pion_mass_Y, chi_Y, ndf_Y, pion_sigma_Y));                                                                                                                    
+          mumuTrkfit_flag=false;
+	  std::tie(mumuTrkfit_flag, mumuTrk_part, mumuTrk_vertex, mumuTrkTree) = BTo2Mu3PiBuilder::KinematicFit(mumuTrkParticles, -1, -1);
+          if(mumuTrkfit_flag){
+            mumuTrk_chi2 = mumuTrk_vertex->chiSquared();
+            mumuTrk_ndof = mumuTrk_vertex->degreesOfFreedom();
+            mumuTrk_vprob = TMath::Prob(mumuTrk_vertex->chiSquared(), mumuTrk_vertex->degreesOfFreedom());
+          }
+
+          cand.addUserFloat("mumuTrk_pi3_chi2",  mumuTrk_chi2 );
+          cand.addUserFloat("mumuTrk_pi3_ndof",  mumuTrk_ndof );
+          cand.addUserFloat("mumuTrk_pi3_vprob",  mumuTrk_vprob );
+
+
+
           auto dr_info = min_max_dr({mu1_ptr, mu2_ptr, pi1_ptr, pi2_ptr, pi3_ptr});
 
           cand.addUserFloat("min_dr", dr_info.first);
@@ -391,10 +537,11 @@ void BTo2Mu3PiBuilder::produce(edm::StreamID, edm::Event &evt, edm::EventSetup c
                   PI_SIGMA,
               }  //some small sigma for the muon mass
           );
-          float tau_fitted_pt = 0, tau_vprob = -1;
+          float tau_fitted_pt = 0, tau_vprob = -1, tau_fitted_mass = 0;
           if (!fitter_tau.success())
             continue;
           tau_fitted_pt = fitter_tau.fitted_p4().pt();
+	  tau_fitted_mass = fitter_tau.fitted_p4().mass();
           tau_vprob = fitter_tau.prob();
           //RefCountedKinematicVertex tau_vertex;
           //tau_vertex = &fitter_tau.fitted_vtx();
@@ -402,6 +549,7 @@ void BTo2Mu3PiBuilder::produce(edm::StreamID, edm::Event &evt, edm::EventSetup c
           //cand.addUserFloat("tau_vprob", tau_vprob);
           cand.addUserFloat("tau_fitted_pt", tau_fitted_pt);
           cand.addUserFloat("tau_vprob", tau_vprob);
+	  cand.addUserFloat("tau_fitted_mass", tau_fitted_mass);
           VertexDistance3D a3d;
           Float_t fl3d = a3d.distance(pv_jpsi, fitter_tau.vertexState()).value();
           Float_t fl3de = a3d.distance(pv_jpsi, fitter_tau.vertexState()).error();
@@ -732,7 +880,7 @@ Measurement1D BTo2Mu3PiBuilder::getIP(edm::Ptr<pat::CompositeCandidate> ll_ptr,
 
   const reco::Vertex jpsiVertex(
       jpsiVertexPosition, jpsiVertexError, ll_ptr->userFloat("sv_chi2"), ll_ptr->userFloat("sv_ndof"), 2);
-
+ 
   SignedImpactParameter3D signed_ip3D;
   Measurement1D ip3D = signed_ip3D.apply(transientTrackMu, jpsiGlobalVector, jpsiVertex).second;
   return ip3D;
@@ -759,5 +907,75 @@ int BTo2Mu3PiBuilder::getPVIdx(const reco::VertexCollection *vertices, const rec
   //  std::cout << "Best vertex id: " << pvIdx << std::endl;
   return pvIdx;
 }
+FreeTrajectoryState BTo2Mu3PiBuilder::initialFreeState(const reco::Track& tk, const MagneticField *field) const {
+  Basic3DVector<float> pos(tk.vertex());
+  GlobalPoint gpos(pos);
+  Basic3DVector<float> mom(tk.momentum());
+  GlobalVector gmom(mom);
+  GlobalTrajectoryParameters par(gpos, gmom, tk.charge(), field);
+  CurvilinearTrajectoryError err(tk.covariance());
+  return FreeTrajectoryState(par, err);
+}
+
+std::tuple<Bool_t, RefCountedKinematicParticle, RefCountedKinematicVertex, RefCountedKinematicTree> BTo2Mu3PiBuilder::KinematicFit(std::vector<RefCountedKinematicParticle> particles, Float_t constrain_mass, Float_t constrain_error) const{
+  
+  //creating the vertex fitter
+  KinematicParticleVertexFitter kpvFitter;
+   
+  //reconstructing a J/Psi decay
+  RefCountedKinematicTree tree = kpvFitter.fit(particles);
+  RefCountedKinematicParticle part; // = tree->currentParticle();
+  RefCountedKinematicVertex vertex; // = tree->currentDecayVertex();
+
+  if(!tree->isEmpty() && tree->isValid() && tree->isConsistent()){
+
+    //creating the particle fitter
+    KinematicParticleFitter csFitter;
+    
+    // creating the constraint
+
+    if(constrain_mass!=-1){
+      //      std::cout << "Constrained fit with mass = " << constrain_mass << " error = " <<  constrain_error << std::endl;
+      KinematicConstraint* constraint = new MassKinematicConstraint(constrain_mass, constrain_error);
+      //the constrained fit
+      tree = csFitter.fit(constraint, tree);
+    } //else{
+      //      std::cout << "No mass constrained fit" << std::endl;
+    //    }
+
+
+    //getting the J/Psi KinematicParticle
+    //    std::cout <<"check" <<  tree->isEmpty() << std::endl;
+    tree->movePointerToTheTop();
+    part = tree->currentParticle();
+
+    if(part->currentState().isValid()){
+    
+      vertex = tree->currentDecayVertex();
+
+      if(vertex->vertexIsValid()){
+      
+	if(TMath::Prob(vertex->chiSquared(), vertex->degreesOfFreedom()) > 0){
+
+	  return std::forward_as_tuple(true, part, vertex, tree);
+
+	}
+      }
+    }
+  }
+
+  
+  return std::forward_as_tuple(false, part, vertex, tree);
+
+}
+bool BTo2Mu3PiBuilder::basicTrackcut(reco::Track track) const{
+  if(!track.quality(reco::TrackBase::highPurity)) return false;
+  if(track.hitPattern().numberOfValidPixelHits() < 0) return false;
+  if(track.hitPattern().numberOfValidHits() < 3) return false;
+  if(track.normalizedChi2() > 100) return false;
+  
+  return true;
+}
+
 #include "FWCore/Framework/interface/MakerMacros.h"
 DEFINE_FWK_MODULE(BTo2Mu3PiBuilder);

@@ -25,6 +25,7 @@ from PhysicsTools.RJPsiNano.tracksBPark_cff import *
 
 ## B collections
 from PhysicsTools.RJPsiNano.BTo3Mu_cff import *
+from PhysicsTools.RJPsiNano.BTo2Mu_cff import *
 from PhysicsTools.RJPsiNano.BTo2MuK_cff import *
 from PhysicsTools.RJPsiNano.BTo2MuP_cff import *
 from PhysicsTools.RJPsiNano.BTo2Mu3P_cff import *
@@ -65,6 +66,11 @@ def nanoAOD_customizeTriggerBitsBPark(process): #needed??
 def nanoAOD_customizeBTo3Mu(process):
     process.nanoBTo3MuSequence = cms.Sequence( BTo3MuSequence + BTo3MuTable )#+HighMassLowMassFlagsTables )
     return process
+
+def nanoAOD_customizeBTo2Mu(process):
+    process.nanoBTo2MuSequence = cms.Sequence( BTo2MuSequence + BTo2MuTable )#+HighMassLowMassFlagsTables )                                                                                                                                     
+    return process
+
 
 def nanoAOD_customizeBTo2MuK(process):
     process.nanoBTo2MuKSequence = cms.Sequence( BTo2MuKSequence + BTo2MuKTable )

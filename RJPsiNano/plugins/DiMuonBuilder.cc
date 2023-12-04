@@ -22,6 +22,24 @@
 #include <limits>
 #include <algorithm>
 #include "KinVtxFitter.h"
+
+
+
+#include "TrackingTools/IPTools/interface/IPTools.h"
+#include "TrackingTools/TransientTrack/interface/TransientTrack.h"             
+#include "TrackingTools/TransientTrack/interface/TransientTrackBuilder.h"
+#include "TrackingTools/Records/interface/TransientTrackRecord.h"
+#include "TrackingTools/GeomPropagators/interface/AnalyticalImpactPointExtrapolator.h"
+#include "TrackingTools/PatternTools/interface/TwoTrackMinimumDistance.h"
+#include "TrackingTools/PatternTools/interface/TransverseImpactPointExtrapolator.h"
+#include "TrackingTools/PatternTools/interface/ClosestApproachInRPhi.h"
+#include "MagneticField/Engine/interface/MagneticField.h"
+#include "MagneticField/Records/interface/IdealMagneticFieldRecord.h"
+#include "RecoVertex/KinematicFitPrimitives/interface/KinematicParticleFactoryFromTransientTrack.h"
+
+#include "RecoVertex/KinematicFit/interface/KinematicParticleVertexFitter.h"
+#include "RecoVertex/KinematicFitPrimitives/interface/RefCountedKinematicParticle.h"
+
 constexpr bool debug = false;
 
 class DiMuonBuilder : public edm::global::EDProducer<> {
@@ -46,8 +64,10 @@ public:
 
   ~DiMuonBuilder() override {}
   
-  void produce(edm::StreamID, edm::Event&, const edm::EventSetup&) const override;
+  //void produce(edm::StreamID, edm::Event&, const edm::EventSetup&) const override;
+  void produce(edm::StreamID, edm::Event&, const edm::EventSetup& iSetup) const override;       
   int  getPVIdx(const reco::VertexCollection*,const reco::TransientTrack&) const;
+  Float_t getMaxDoca(std::vector<RefCountedKinematicParticle> &kinParticles) const;
 
   static void fillDescriptions(edm::ConfigurationDescriptions &descriptions) {}
   
@@ -62,7 +82,7 @@ private:
   const edm::EDGetTokenT<reco::BeamSpot> beamspot_;
 };
 
-void DiMuonBuilder::produce(edm::StreamID, edm::Event &evt, edm::EventSetup const &) const {
+void DiMuonBuilder::produce(edm::StreamID, edm::Event &evt,const edm::EventSetup& iSetup) const {
   
   //input
   edm::Handle<MuonCollection> muons;
@@ -100,6 +120,9 @@ void DiMuonBuilder::produce(edm::StreamID, edm::Event &evt, edm::EventSetup cons
 
     int isDimuon0_jpsi_Trg1 = mu1_ptr->userInt("isDimuon0_jpsi_Trg");
     int isDimuon43_jpsi_displaced_Trg1 = mu1_ptr->userInt("isDimuon43_jpsi_displaced_Trg");
+    int isMu8_Trg1 = mu1_ptr->userInt("isMu8_Trg");
+
+    int isDimuon0_jpsi_4R_Trg1 = mu1_ptr->userInt("isDimuon0_jpsi_4R_Trg");
 
     if(debug) 
       std::cout<< "mu1 "<<mu1_ptr->pt()<<" isMuonFromJpsi_jpsiTrk_1 "<<isMuonFromJpsi_jpsiTrk_1<<" isJpsiTrkTrg1 "<<isJpsiTrkTrg1<<std::endl;
@@ -122,6 +145,9 @@ void DiMuonBuilder::produce(edm::StreamID, edm::Event &evt, edm::EventSetup cons
 
       int isDimuon0_jpsi_Trg2 = mu2_ptr->userInt("isDimuon0_jpsi_Trg");
       int isDimuon43_jpsi_displaced_Trg2 = mu2_ptr->userInt("isDimuon43_jpsi_displaced_Trg");
+      int isMu8_Trg2 = mu2_ptr->userInt("isMu8_Trg");
+
+      int isDimuon0_jpsi_4R_Trg2 = mu2_ptr->userInt("isDimuon0_jpsi_4R_Trg");
 
       int dimuon0_trigger = (isDimuon0Trg1 && isMuonFromJpsi_dimuon0_1) && (isDimuon0Trg2 && isMuonFromJpsi_dimuon0_2);
       int jpsitrk_trigger = (isJpsiTrkTrg1 && isMuonFromJpsi_jpsiTrk_1) && (isJpsiTrkTrg2 && isMuonFromJpsi_jpsiTrk_2);
@@ -132,7 +158,9 @@ void DiMuonBuilder::produce(edm::StreamID, edm::Event &evt, edm::EventSetup cons
 
       int dimuon0_jpsi_trigger = isDimuon0_jpsi_Trg1 && isDimuon0_jpsi_Trg2 ;
       int dimuon43_jpsi_displaced_trigger = isDimuon43_jpsi_displaced_Trg1 && isDimuon43_jpsi_displaced_Trg2;
+      int dimuon_Mu8_trigger = isMu8_Trg1 || isMu8_Trg2 ;
 
+      int dimuon0_jpsi_4R_trigger = isDimuon0_jpsi_4R_Trg1 && isDimuon0_jpsi_4R_Trg2 ;
 
       // if(isJpsiTrk_NonResonantTrg1) std::cout << "DimuonBuilder::isJpsiTrk_NonResonantTrg1" << std::endl;
       // if(isJpsiTrk_NonResonantTrg2) std::cout << "DimuonBuilder::isJpsiTrk_NonResonantTrg2" << std::endl;
@@ -143,7 +171,7 @@ void DiMuonBuilder::produce(edm::StreamID, edm::Event &evt, edm::EventSetup cons
       if(debug) std::cout<< "mu2 "<<mu2_ptr->pt()<<" isMuonFromJpsi_jpsiTrk_2 "<<isMuonFromJpsi_jpsiTrk_2<<" isJpsiTrkTrg2 "<<isJpsiTrkTrg2<<std::endl;
 
       //Trig: HLT Eff
-      if(!jpsitrk_trigger && !dimuon0_trigger && !jpsitrk_PsiPrime_trigger && !jpsitrk_NonResonant_trigger && !dimuon0_jpsi_trigger && !dimuon43_jpsi_displaced_trigger ) continue;
+      //      if(!jpsitrk_trigger && !dimuon0_trigger && !jpsitrk_PsiPrime_trigger && !jpsitrk_NonResonant_trigger && !dimuon0_jpsi_trigger && !dimuon43_jpsi_displaced_trigger ) continue;
       //  std::cout << "++++DimuonBuilder::jpsitrk_NonResonant_trigger" << std::endl;
       
       //  std::cout << "++++DimuonBuilder::jpsitrk_NonResonant_trigger" << std::endl;
@@ -163,6 +191,9 @@ void DiMuonBuilder::produce(edm::StreamID, edm::Event &evt, edm::EventSetup cons
 
       muon_pair.addUserInt("isDimuon0_jpsi_Trg", dimuon0_jpsi_trigger);
       muon_pair.addUserInt("isDimuon43_jpsi_displaced_Trg", dimuon43_jpsi_displaced_trigger);
+      muon_pair.addUserInt("isDimuon_Mu8_Trg", dimuon_Mu8_trigger ); 
+
+      muon_pair.addUserInt("isDimuon0_jpsi_4R_Trg", dimuon0_jpsi_4R_trigger);
 
       // Use UserCands as they should not use memory but keep the Ptr itself
       muon_pair.addUserCand("mu1", mu1_ptr );
@@ -179,13 +210,15 @@ void DiMuonBuilder::produce(edm::StreamID, edm::Event &evt, edm::EventSetup cons
         {LEP_SIGMA, LEP_SIGMA} //some small sigma for the particle mass
         );
 
+      float sv_dR=deltaR(mu1_ptr->eta(),mu1_ptr->phi(),mu2_ptr->eta(),mu2_ptr->phi());
+      muon_pair.addUserFloat("sv_dR",sv_dR);
       muon_pair.addUserFloat("sv_success", fitter.success()); // float??
       muon_pair.addUserFloat("sv_prob", fitter.prob());
       muon_pair.addUserFloat("sv_chi2", fitter.chi2());
-      if( !post_vtx_selection_(muon_pair) ) continue;
+      if( !post_vtx_selection_(muon_pair)) continue;
       //if(debug) std::cout << "vx_: " << fitter.fitted_candidate() << std::endl;
       muon_pair.addUserFloat("sv_position", fitter.fitted_vtx().x()); // float??
-      muon_pair.addUserFloat("sv_ndof", fitter.dof()); // float??
+      muon_pair.addUserFloat("sv_ndof", fitter.dof()); // float??Fra 
       auto fit_p4 = fitter.fitted_p4();
       muon_pair.addUserFloat("fitted_mass", fitter.success() ? fitter.fitted_candidate().mass() : -1);
       //std::cout << "Dimuon mass: " << fitter.fitted_candidate().mass() << std::endl;
@@ -243,7 +276,94 @@ void DiMuonBuilder::produce(edm::StreamID, edm::Event &evt, edm::EventSetup cons
                                );
      
       // if needed, add here more stuff
+      float chi_Y=0,ndf_Y=0;
+      float muon_mass_Y = 0.1056583;
+      
+      float muon_sigma_Y = 0.0000001;
+      edm::ESHandle<TransientTrackBuilder> builder;
+      iSetup.get<TransientTrackRecord>().get("TransientTrackBuilder", builder);
+      const reco::TrackRef track1_muon = mu1_ptr->muonBestTrack();
+      const reco::TrackRef track2_muon = mu2_ptr->muonBestTrack();
+      //reco::TransientTrack tt1_muon = (*builder).build(aux.fix_track(track1_muon));
+      //reco::TransientTrack tt2_muon = (*builder).build(aux.fix_track(track2_muon));
+      reco::TransientTrack tt1_muon = (*builder).build(track1_muon);
+      reco::TransientTrack tt2_muon = (*builder).build(track2_muon);   
+      KinematicParticleFactoryFromTransientTrack pFactory;
+      std::vector<RefCountedKinematicParticle> muonParticles;
 
+      muonParticles.push_back(pFactory.particle(tt1_muon, muon_mass_Y, chi_Y, ndf_Y, muon_sigma_Y));
+      muonParticles.push_back(pFactory.particle(tt2_muon, muon_mass_Y, chi_Y, ndf_Y, muon_sigma_Y));
+
+      muon_pair.addUserFloat("maxdoca",getMaxDoca(muonParticles));
+      //======
+      reco::TrackRef glbTrackP;  
+      reco::TrackRef glbTrackM;  
+      
+      if(mu1_ptr->charge() == 1){ glbTrackP = mu1_ptr->track();}
+      if(mu1_ptr->charge() == -1){ glbTrackM = mu1_ptr->track();}
+      
+      if(mu2_ptr->charge() == 1) { glbTrackP = mu2_ptr->track();}
+      if(mu2_ptr->charge() == -1){ glbTrackM = mu2_ptr->track();}
+      
+      if( glbTrackP.isNull() || glbTrackM.isNull() ) 
+        {
+          if (debug) std::cout << "continue due to no track ref" <<  std::endl;
+          continue;
+        }
+
+      if(mu1_ptr->track()->pt()<2.0) continue;
+      if(mu2_ptr->track()->pt()<2.0) continue;
+
+      if(!(glbTrackM->quality(reco::TrackBase::highPurity))) continue;
+      if(!(glbTrackP->quality(reco::TrackBase::highPurity))) continue; 
+      
+      reco::TransientTrack muon1TT((*builder).build(glbTrackP));
+      reco::TransientTrack muon2TT((*builder).build(glbTrackM));
+
+      // *****  Trajectory states to calculate DCA for the 2 muons *********************
+      FreeTrajectoryState mu1State = muon1TT.impactPointTSCP().theState();
+      FreeTrajectoryState mu2State = muon2TT.impactPointTSCP().theState();
+
+      if( !muon1TT.impactPointTSCP().isValid() || !muon2TT.impactPointTSCP().isValid() ) continue;
+
+      // Measure distance between tracks at their closest approach
+      ClosestApproachInRPhi cApp;
+      cApp.calculate(mu1State, mu2State);
+      if( !cApp.status() ) continue;
+      float dca = fabs( cApp.distance() );  
+      //if (dca < 0. || dca > 0.5) continue;
+      //cout<<" closest approach  "<<dca<<endl;
+      muon_pair.addUserFloat("dca",dca);
+      // *****  end DCA for the 2 muons *********************
+    //   //========= chi2
+    //   KinematicParticleVertexFitter fitter_kin;   
+      
+    //   RefCountedKinematicTree psiVertexFitTree;
+    //   try {
+    //     psiVertexFitTree = fitter_kin.fit(muonParticles); 
+    //   }
+    //   catch (...) { 
+    // 	std::cout<<" Exception caught ... continuing 2 "<<std::endl; 
+    //     continue;
+    //   }
+      
+    //   if (!psiVertexFitTree->isValid()) 
+    //     {
+    //       //std::cout << "caught an exception in the psi vertex fit" << std::endl;
+    //       continue; 
+    //     }
+      
+    //   psiVertexFitTree->movePointerToTheTop();
+      
+    //   RefCountedKinematicParticle psi_vFit_noMC = psiVertexFitTree->currentParticle();
+    //   RefCountedKinematicVertex psi_vFit_vertex_noMC = psiVertexFitTree->currentDecayVertex();
+    //   double J_Prob_tmp   = TMath::Prob(psi_vFit_vertex_noMC->chiSquared(),(int)psi_vFit_vertex_noMC->degreesOfFreedom());
+    //   muon_pair.addUserFloat("sv_tr_chi2",psi_vFit_vertex_noMC->chiSquared());
+    //   muon_pair.addUserFloat("sv_tr_ndof",psi_vFit_vertex_noMC->degreesOfFreedom());
+    //   muon_pair.addUserFloat("sv_tr_prob", J_Prob_tmp);
+    // // ==== 
+    
+    //=========================
       // cut on the SV info
       // const reco::TransientTrack& fitted_candidate_ttrk()
       if(!fitter.fitted_candidate_ttrk().isValid()) continue;
@@ -261,8 +381,9 @@ void DiMuonBuilder::produce(edm::StreamID, edm::Event &evt, edm::EventSetup cons
       ret_value->back().addUserInt("muonpair_fromjpsitrk_PsiPrime", jpsitrk_PsiPrime_trigger);
       ret_value->back().addUserInt("muonpair_fromjpsitrk_NonResonant", jpsitrk_NonResonant_trigger);
       ret_value->back().addUserInt("muonpair_fromdoubleMu", doubleMu_trigger);
+      ret_value->back().addUserInt("muonpair_fromMu8_Trg", dimuon_Mu8_trigger );     
       ret_value->back().addUserInt("pvIdx", pvIdx);
-      
+     
     }
   }
   if (debug)
@@ -291,6 +412,25 @@ int DiMuonBuilder::getPVIdx(const reco::VertexCollection* vertices,const reco::T
     if(debug) std::cout<< "Best vertex x: " << bestVertex.x() << std::endl;
     if(debug) std::cout<< "Best vertex id: " << pvIdx << std::endl;
   return pvIdx;
+}
+
+
+Float_t DiMuonBuilder::getMaxDoca(std::vector<RefCountedKinematicParticle> &kinParticles) const{
+
+  double maxDoca = -1.0;
+
+  TwoTrackMinimumDistance md;
+  std::vector<RefCountedKinematicParticle>::iterator in_it, out_it;
+
+  for (out_it = kinParticles.begin(); out_it != kinParticles.end(); ++out_it) {
+    for (in_it = out_it + 1; in_it != kinParticles.end(); ++in_it) {
+      md.calculate((*out_it)->currentState().freeTrajectoryState(),(*in_it)->currentState().freeTrajectoryState());
+      if (md.distance() > maxDoca)
+	maxDoca = md.distance();
+    }
+  }
+
+  return maxDoca;
 }
 
 DEFINE_FWK_MODULE(DiMuonBuilder);

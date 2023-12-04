@@ -7,7 +7,7 @@ echo "================= CMSRUN finished ===================="
 echo "==================puReweight starting ================"
 #echo ${date} 
 
-python  puReweight_2016.py --tag TAGDATE
+python  puReweight_2016.py --tag 2023Oct09
 # output file slightly different name
 #rm input file
 echo "================= puReweight finished ================"

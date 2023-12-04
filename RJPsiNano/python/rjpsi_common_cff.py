@@ -22,7 +22,7 @@ JpsiMuonPairs = cms.EDProducer(
     postVtxSelection   = cms.string(
         'userFloat("sv_prob") > 1.e-5 '
         '&& userFloat("sv_success") > 0. '
-        '&& pt > 3 '
+#        '&& pt > 3 '
         #        '&& userFloat("sv_chi2") < 998 ' 
     ),
     beamSpot              = cms.InputTag("offlineBeamSpot"),
@@ -76,6 +76,7 @@ TableDefaultVariables = cms.PSet(
     
     #all final particles vertex
     bodies3_chi2     = ufloat('sv_chi2'),
+    bodies3_ndof     = ufloat('sv_ndof'),
     bodies3_chi2_2     = ufloat('vtx_chi2'),
     bodies3_svprob   = ufloat('sv_prob'),
     bodies3_l_xy     = ufloat('l_xy'),
@@ -106,6 +107,8 @@ TableDefaultVariables = cms.PSet(
     #2 particles vertex
     jpsivtx_chi2 = Var('userCand("dilepton").userFloat("sv_chi2")', float),
     jpsivtx_svprob = Var('userCand("dilepton").userFloat("sv_prob")', float),
+    jpsivtx_ndof = Var('userCand("dilepton").userFloat("sv_ndof")', float),   
+    jpsivtx_dR = Var('userCand("dilepton").userFloat("sv_dR")', float),
     jpsivtx_l_xy = Var('userCand("dilepton").userFloat("l_xy")', float),
     jpsivtx_l_xy_unc = Var('userCand("dilepton").userFloat("l_xy_unc")', float),
     jpsivtx_vtx_x = Var('userCand("dilepton").userFloat("vtx_x")', float),
@@ -115,8 +118,13 @@ TableDefaultVariables = cms.PSet(
     jpsivtx_vtx_ey = Var('userCand("dilepton").userFloat("vtx_ey")', float),
     jpsivtx_vtx_ez = Var('userCand("dilepton").userFloat("vtx_ez")', float),
     jpsivtx_cos2D = Var('userCand("dilepton").userFloat("cos_theta_2D")', float),
-
-    #post fit 2 particles vertex
+    jpsivtx_maxdoca = Var('userCand("dilepton").userFloat("maxdoca")', float), 
+    jpsivtx_dca = Var('userCand("dilepton").userFloat("dca")', float),  
+    #TRG BPH particles vertex
+#    jpsivtx_tr_chi2 = Var('userCand("dilepton").userFloat("sv_tr_chi2")', float),
+#    jpsivtx_tr_prob = Var('userCand("dilepton").userFloat("sv_tr_prob")', float),     
+#    jpsivtx_tr_ndof = Var('userCand("dilepton").userFloat("sv_tr_ndof")', float),  
+    #post fit 2 particles vertex  
     jpsivtx_fit_mass    = Var('userCand("dilepton").userFloat("fitted_mass")', float),
     jpsivtx_fit_massErr = Var('userCand("dilepton").userFloat("fitted_massErr")', float),
     jpsivtx_fit_pt    = Var('userCand("dilepton").userFloat("fitted_pt")', float),
@@ -208,17 +216,23 @@ Final3PartTableVariables = TableDefaultVariables.clone(
 
 
     #dz and dxy  for muon particle w.r.t. best pv.
-
+    k_d0sig= ufloat('k_d0sig'),
     k_pvjpsi_dxy = ufloat('k_pvjpsi_dxy'),
     k_pvjpsi_dz = ufloat('k_pvjpsi_dz'),
     k_pvjpsi_dxyErr = ufloat('k_pvjpsi_dxyErr'),
     k_pvjpsi_dzErr = ufloat('k_pvjpsi_dzErr'),
+    #k dR wrt Jpsi
+    k_jpsi_dR = ufloat('k_jpsi_dR'),   
 )
+
+
+
 
 #builder for final states with 3 muons
 Final3MuonsTableVariables = Final3PartTableVariables.clone(
     ip3D_pvb = ufloat('ip3D_pvb'),
     ip3D_pvb_e = ufloat('ip3D_pvb_e'),
+
 
     k_pvb_dxy = ufloat('k_pvb_dxy'),
     k_pvb_dz = ufloat('k_pvb_dz'),
@@ -276,4 +290,54 @@ Final3MuonsTableVariables = Final3PartTableVariables.clone(
     mu1_pvfirst_dzErr = ufloat('mu1_pvfirst_dzErr'),
     mu2_pvfirst_dxyErr = ufloat('mu2_pvfirst_dxyErr'),
     mu2_pvfirst_dzErr = ufloat('mu2_pvfirst_dzErr'),
+)
+
+#builder for finalstates with 2 muons                                                                                                                           
+Final2MuonsTableVariables = TableDefaultVariables.clone(
+
+    pvb_idx = uint('pvb_idx'),
+    pvb_x = ufloat('pvb_x'),
+    pvb_y = ufloat('pvb_y'),
+    pvb_z = ufloat('pvb_z'),
+    pvb_ex = ufloat('pvb_ex'),
+    pvb_ey = ufloat('pvb_ey'),
+    pvb_ez = ufloat('pvb_ez'),
+    pvb_exy = ufloat('pvb_exz'),
+    pvb_eyz = ufloat('pvb_eyz'),
+    pvb_exz = ufloat('pvb_exz'),
+    pvb_chi2 = ufloat('pvb_chi2'),
+    mu1_pvb_dxy = ufloat('mu1_pvb_dxy'),
+    mu1_pvb_dz = ufloat('mu1_pvb_dz'),
+    mu2_pvb_dxy = ufloat('mu2_pvb_dxy'),
+    mu2_pvb_dz = ufloat('mu2_pvb_dz'),
+
+    mu1_pvb_dxyErr = ufloat('mu1_pvb_dxyErr'),
+    mu1_pvb_dzErr = ufloat('mu1_pvb_dzErr'),
+    mu2_pvb_dxyErr = ufloat('mu2_pvb_dxyErr'),
+    mu2_pvb_dzErr = ufloat('mu2_pvb_dzErr'),
+
+
+    pvfirst_idx = uint('pvfirst_idx'),
+    pvfirst_x = ufloat('pvfirst_x'),
+    pvfirst_y = ufloat('pvfirst_y'),
+    pvfirst_z = ufloat('pvfirst_z'),
+    pvfirst_ex = ufloat('pvfirst_ex'),
+    pvfirst_ey = ufloat('pvfirst_ey'),
+    pvfirst_ez = ufloat('pvfirst_ez'),
+    pvfirst_exy = ufloat('pvfirst_exz'),
+    pvfirst_eyz = ufloat('pvfirst_eyz'),
+    pvfirst_exz = ufloat('pvfirst_exz'),
+    pvfirst_chi2 = ufloat('pvfirst_chi2'),
+
+    mu1_pvfirst_dxy = ufloat('mu1_pvfirst_dxy'),
+    mu1_pvfirst_dz = ufloat('mu1_pvfirst_dz'),
+    mu2_pvfirst_dxy = ufloat('mu2_pvfirst_dxy'),
+    mu2_pvfirst_dz = ufloat('mu2_pvfirst_dz'),
+    mu1_pvfirst_dxyErr = ufloat('mu1_pvfirst_dxyErr'),
+    mu1_pvfirst_dzErr = ufloat('mu1_pvfirst_dzErr'),
+    mu2_pvfirst_dxyErr = ufloat('mu2_pvfirst_dxyErr'),
+    mu2_pvfirst_dzErr = ufloat('mu2_pvfirst_dzErr'),
+
+    E_mu_star   = ufloat('E_mu_star'),
+    E_mu_canc   = ufloat('E_mu_#'),
 )

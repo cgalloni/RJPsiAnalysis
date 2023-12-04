@@ -5,7 +5,7 @@ import FWCore.ParameterSet.Config as cms
 
 options = VarParsing('python')
 
-options.register('isMC', False,
+options.register('isMC', True,
     VarParsing.multiplicity.singleton,
     VarParsing.varType.bool,
     "Run this on real data"
@@ -33,13 +33,13 @@ options.register('skip',0,
 )
 
 options.setDefault('maxEvents',-1)
-options.setDefault('tag', '20230104')
+options.setDefault('tag', '20230417')
 #options.setDefault('tag', '2021Feb09')
 options.parseArguments()
 
 #globaltag = '102X_dataRun2_v11' if not options.isMC else '102X_upgrade2018_realistic_v15'
-globaltag = '106X_dataRun2_v28' if not options.isMC else '106X_upgrade2018_realistic_v11_L1v1'
-
+#globaltag = '106X_dataRun2_v28' if not options.isMC else '106X_upgrade2018_realistic_v11_L1v1'
+globaltag = '102X_upgrade2018_realistic_v18' if options.isMC else '106X_dataRun2_v28'
 
 if options._beenSet['globalTag']:
     globaltag = options.globalTag
@@ -51,8 +51,10 @@ outputFileNANO = cms.untracked.string('_'.join(['RJPsi', extension[options.isMC]
 
 #input files (it can be a list of files)
 if not options.inputFiles:
-    options.inputFiles = ['root://cmsxrootd.fnal.gov//store/data/Run2018D/Charmonium/MINIAOD/12Nov2019_UL2018-v1/120000/3D4F26E7-5686-2141-A0BC-41C47223357F.root'] if not options.isMC else \
-                         ["root://cms-xrd-global.cern.ch//store/mc/RunIISummer20UL18MiniAOD/HbToJPsiMuMu_TuneCP5_13TeV-pythia8-evtgen/MINIAODSIM/106X_upgrade2018_realistic_v11_L1v1-v1/00000/014EC954-4C5E-AD48-BB44-401D779323E3.root"] #Hb jpsi+X sample
+    options.inputFiles = ["root://cms-xrd-global.cern.ch//store/data/Run2018C/DoubleMuon/MINIAOD/12Nov2019_UL2018-v2/00000/0D29BC01-8434-6D42-9450-7AAD6C2B11C3.root"] if not options.isMC else [
+"root://cmsxrootd.hep.wisc.edu//store/mc/RunIISummer20UL16MiniAODv2/BcToJPsiMuMu_inclusive_TuneCP5_13TeV-bcvegpy2-pythia8-evtgen/MINIAODSIM/106X_mcRun2_asymptotic_v17-v2/270000/A5729AE5-ABAC-3B42-A721-8B242FE0786A.root"]
+#"root://cms-xrd-global.cern.ch//store/mc/RunIISummer20UL18MiniAOD/BcToJPsiMuMu_inclusive_TuneCP5_13TeV-bcvegpy2-pythia8-evtgen/MINIAODSIM/106X_upgrade2018_realistic_v11_L1v1-v2/00000/73361092-84FC-E741-A033-DF61DF655E6F.root"] #Hb jpsi+X sample
+    #['root://cmsxrootd.fnal.gov//store/data/Run2018D/Charmonium/MINIAOD/12Nov2019_UL2018-v1/120000/3D4F26E7-5686-2141-A0BC-41C47223357F.root'] if not options.isMC else \ 
                          #['root://cmsxrootd.fnal.gov//store/data/Run2018D/Charmonium/MINIAOD/12Nov2019_UL2018-v1/120000/3D4F26E7-5686-2141-A0BC-41C47223357F.root'] if not options.isMC else \
 #["root://cms-xrd-global.cern.ch//store/user/manzoni/RJPsi_Bc_PMX_HLT_RECO_MINI_28oct20_v5/RJpsi-BcToXToJpsiMuMuSelected-RunIISummer19UL18MiniAOD_1000.root"]
 #                         ['root://cms-xrd-global.cern.ch//store/mc/RunIIAutumn18MiniAOD/OniaAndX_ToMuMu_MuFilter_SoftQCDnonD_TuneCP5_13TeV-pythia8-evtgen/MINIAODSIM/102X_upgrade2018_realistic_v15-v1/00000/01325465-A815-E24E-ABB3-DAB8D4880BDE.root']
